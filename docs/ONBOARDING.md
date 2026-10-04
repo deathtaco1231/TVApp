@@ -46,10 +46,11 @@ TVApp/
   jest.setup.ts           loads @testing-library/jest-dom
   src/
     app/                  App Router routes (folders = URL segments)
-      layout.tsx          root layout: <html>, fonts, header, footer
+      layout.tsx          root layout: <html>, fonts, header nav, footer
       page.tsx            "/"            -> live matches (server) + <LiveBrowser>
       globals.css         Tailwind import + theme tokens
-      sports/[sport]/     "/sports/:sport" -> matches for one sport
+      schedule/           "/schedule"    -> today's matches, grouped (server)
+      sports/[sport]/     "/sports/:sport" -> all matches for one sport
       matches/[id]/       "/matches/:id"   -> one match + stream picker
     components/           UI pieces
       LiveBrowser.tsx     live board: search, popular filter, sections (client)
@@ -113,6 +114,7 @@ src/**/*.ts(x)
   -> TypeScript check across the project  # "Running TypeScript ..."
   -> pages rendered:
        /                 static, revalidate 60s (ISR)
+       /schedule         static, revalidate 60s (ISR)
        /sports/[sport]   dynamic (server-rendered on demand)
        /matches/[id]     dynamic (server-rendered on demand)
   -> output in .next/  (generated — never edit by hand)
@@ -123,6 +125,9 @@ Notes:
 - `/` is prerendered at build time with a 60-second revalidation window because
   the page sets `export const revalidate = 60` (`src/app/page.tsx:6`) and the
   fetch default is also 60 (`src/lib/streamed/client.ts:25`).
+- The **root layout** fetches `/api/sports` (`src/app/layout.tsx`) to build the
+  header's Sports menu. The request is memoized and shares the 60s revalidate, so
+  it does not double-hit the API.
 - Route params in Next 16 are **asynchronous**: `params` is a `Promise` and must
   be awaited (`src/app/matches/[id]/page.tsx:14-16`).
 - Next 16 generates route types under `.next/types/`; `next-env.d.ts:3` imports
@@ -330,6 +335,8 @@ network.
 | Change home grouping / search / ordering | `src/lib/live.ts` | Dev hot-reloads; rebuild for production |
 | Change the sport sidebar / jump behavior | `src/components/LiveSportNav.tsx` | Dev hot-reloads |
 | Change the home layout (sections, toolbar) | `src/components/LiveBrowser.tsx` | Dev hot-reloads |
+| Add/rename a header nav link | `src/app/layout.tsx` | Dev hot-reloads; rebuild for typed routes |
+| Change the Today page | `src/app/schedule/page.tsx` | Dev hot-reloads |
 | Change the API base URL | `src/lib/streamed/client.ts:1-2` | Dev hot-reloads; production build |
 | Change how long data is cached | `src/lib/streamed/client.ts:25` and the page's `export const revalidate` | Yes |
 | Add a new match filter/page | `src/app/…/page.tsx` + a helper in `matches.ts` | Yes (regenerates route types) |
@@ -370,6 +377,10 @@ network.
     imports (or `async`) to it without moving it out of the client tree.
 11. **Filtering state is local.** Search and "Popular only" live only in
     `LiveBrowser` state; they are not in the URL, so they reset on reload.
+12. **Sport pages must stay reachable.** `/sports/[sport]` was once orphaned from
+    home. The header **Sports** dropdown (`src/app/layout.tsx`) and the sidebar
+    arrows (`src/components/LiveSportNav.tsx`) keep them one click away — don't
+    remove both.
 
 ---
 

@@ -1,6 +1,9 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import Link from "next/link";
+import { SportsMenu } from "@/components/SportsMenu";
+import { getSports } from "@/lib/streamed/sports";
+import type { Sport } from "@/lib/streamed/types";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -18,7 +21,17 @@ export const metadata: Metadata = {
   description: "Live sports streaming browser powered by the Streamed API.",
 };
 
-export default function RootLayout({ children }: LayoutProps<"/">) {
+const navLink =
+  "text-sm text-zinc-600 transition hover:text-zinc-900 dark:text-zinc-300 dark:hover:text-zinc-100";
+
+export default async function RootLayout({ children }: LayoutProps<"/">) {
+  let sports: Sport[] = [];
+  try {
+    sports = await getSports();
+  } catch {
+    sports = [];
+  }
+
   return (
     <html
       lang="en"
@@ -26,15 +39,30 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
     >
       <body className="min-h-full flex flex-col font-sans">
         <header className="border-b border-black/10 dark:border-white/10">
-          <div className="mx-auto flex w-full max-w-5xl items-center gap-4 px-4 py-3">
+          <div className="mx-auto flex w-full max-w-5xl flex-wrap items-center gap-x-4 gap-y-2 px-4 py-3">
             <Link href="/" className="text-lg font-semibold tracking-tight">
               TVApp
             </Link>
+
+            <nav
+              aria-label="Primary"
+              className="flex items-center gap-4"
+            >
+              <Link href="/" className={navLink}>
+                Live
+              </Link>
+              <Link href="/schedule" className={navLink}>
+                Today
+              </Link>
+
+              <SportsMenu sports={sports} />
+            </nav>
+
             <a
               href="https://streamed.pk/docs"
               target="_blank"
               rel="noopener noreferrer"
-              className="ml-auto text-sm text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-100"
+              className={`ml-auto ${navLink}`}
             >
               API docs
             </a>

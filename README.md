@@ -7,8 +7,9 @@ no database of its own.
 This started as a learning project for React and Next.js, and is built so a
 beginner can follow one piece of data from the API to the screen. The home page
 groups **live matches by sport** with a jump-nav sidebar, global search, and a
-popular-only filter. Each match opens a **match page** with a stream picker and an
-embedded player.
+popular-only filter. A persistent header links **Live**, **Today** (today's full
+schedule across sports), and every sport. Each match opens a **match page** with a
+stream picker and an embedded player.
 
 ## Tech stack
 
@@ -47,8 +48,10 @@ touches `fetch`.
 
 ```text
 src/app/                     routes (App Router)
-  page.tsx                   home → live matches
-  sports/[sport]/page.tsx    matches for one sport
+  layout.tsx                 shell + header nav (Live / Today / Sports)
+  page.tsx                   home → live matches, grouped by sport
+  schedule/page.tsx          today's matches across sports
+  sports/[sport]/page.tsx    all matches for one sport
   matches/[id]/page.tsx      one match → stream picker + player
 src/components/              presentational + interactive pieces
 src/lib/
