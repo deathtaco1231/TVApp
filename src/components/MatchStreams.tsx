@@ -3,11 +3,10 @@
 import { useMemo, useState } from "react";
 
 import { StreamPlayer } from "@/components/StreamPlayer";
+import { streamKey } from "@/lib/streamed/streams";
 import type { Stream } from "@/lib/streamed/types";
 
-export function streamKey(stream: Stream): string {
-  return `${stream.source}:${stream.id}:${stream.streamNo}`;
-}
+export { streamKey };
 
 export function MatchStreams({ streams }: { streams: Stream[] }) {
   const [selectedKey, setSelectedKey] = useState(() =>

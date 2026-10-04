@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import Link from "next/link";
 import { SportsMenu } from "@/components/SportsMenu";
+import { NavLink } from "@/components/NavLink";
 import { getSports } from "@/lib/streamed/sports";
 import type { Sport } from "@/lib/streamed/types";
 import "./globals.css";
@@ -48,14 +49,14 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
               aria-label="Primary"
               className="flex items-center gap-4"
             >
-              <Link href="/" className={navLink}>
+              <NavLink href="/" exact>
                 Live
-              </Link>
-              <Link href="/schedule" className={navLink}>
-                Today
-              </Link>
+              </NavLink>
+              <NavLink href="/schedule">Today</NavLink>
 
               <SportsMenu sports={sports} />
+
+              <NavLink href="/dashboard">Dashboard</NavLink>
             </nav>
 
             <a

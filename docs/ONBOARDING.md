@@ -52,6 +52,7 @@ TVApp/
       schedule/           "/schedule"    -> today's matches, grouped (server)
       sports/[sport]/     "/sports/:sport" -> all matches for one sport
       matches/[id]/       "/matches/:id"   -> one match + stream picker
+      dashboard/          "/dashboard"     -> multi-stream mosaic (server shell)
     components/           UI pieces
       LiveBrowser.tsx     live board: search, popular filter, sections (client)
       LiveSportNav.tsx    sport jump-nav with live counts (client)
@@ -59,17 +60,25 @@ TVApp/
       SportFilter.tsx     sport pills for /sports pages (server component)
       MatchStreams.tsx    stream picker (client component, holds state)
       StreamPlayer.tsx    iframe player + fallback link (client component)
+      Dashboard.tsx       draggable/resizable stream board (client)
+      DashboardWidget.tsx one stream tile: iframe, swap, focus, remove (client)
+      AddStreamPanel.tsx  add-stream picker drawer (client)
+      StreamOptions.tsx   shared stream list (client, presentational)
+      LiveBadge.tsx       red "LIVE" pulse marker (presentational)
     lib/
       live.ts             pure grouping/search/sort helpers for the home page
+      dates.ts            pure kickoff / same-local-day helpers
+      dashboard.ts        pure widget identity/layout/persistence helpers
+      dashboardStore.ts   localStorage-backed external store (useSyncExternalStore)
       streamed/           the ONLY code that talks to the API
         types.ts          APIMatch / Stream / Sport / MatchSource
         client.ts         base URL, error type, streamedFetch<T>()
         matches.ts        matchesPath + getMatches/getLiveMatches/...
         sports.ts         getSports()
-        streams.ts        streamsPath + getStreams/getStreamsForSources()
+        streams.ts        streamsPath + streamKey + getStreams/getStreamsForSources()
         images.ts         badgeUrl/posterUrl/proxyImageUrl
         __tests__/        pure path-builder tests (no network)
-      __tests__/          pure live-board helper tests (no network)
+      __tests__/          pure live-board + dashboard + date helper tests (no network)
   public/                 static assets
 ```
 
@@ -100,6 +109,9 @@ today only server components fetch.
 | Routes | `src/app/**` | URL → page component |
 | UI | `src/components/**` | Presentational + interactive pieces |
 | Live board logic | `src/lib/live.ts` | Pure grouping/search/sort for the home page |
+| Date helpers | `src/lib/dates.ts` | Pure kickoff guard + same-local-day checks |
+| Dashboard logic | `src/lib/dashboard.ts` | Pure tile identity, placement, (de)serialization |
+| Dashboard state | `src/lib/dashboardStore.ts` | `localStorage`-backed external store for widgets |
 | Data access | `src/lib/streamed/**` | Typed `fetch` wrappers, the API seam |
 | Config | `next.config.ts`, `tsconfig.json`, `eslint.config.mjs` | Build/tooling |
 | Tests | `src/lib/**/__tests__/**` | Jest unit tests (pure, offline) |
@@ -326,7 +338,9 @@ network.
 5. Use `useEffect` only to subscribe to an external system — `LiveBrowser` uses an
    `IntersectionObserver` to track the visible section. Avoid setting state
    synchronously in an effect body (the repo's ESLint config rejects it); derive
-   instead.
+   instead. For state that must survive reloads, prefer an external store read
+   through `useSyncExternalStore` (`src/lib/dashboardStore.ts`) over reading
+   `localStorage` in an effect.
 
 ## 9. Where do I change X?
 
@@ -343,6 +357,10 @@ network.
 | Change the card layout | `src/components/MatchCard.tsx` | Dev hot-reloads |
 | Change the player / iframe settings | `src/components/StreamPlayer.tsx:26-34` | Dev hot-reloads |
 | Change stream selection UI | `src/components/MatchStreams.tsx` | Dev hot-reloads |
+| Change the dashboard tile grid / drag-resize | `src/components/Dashboard.tsx` | Dev hot-reloads |
+| Change a dashboard tile (header, buttons, iframe) | `src/components/DashboardWidget.tsx` | Dev hot-reloads |
+| Change the add-stream picker | `src/components/AddStreamPanel.tsx` | Dev hot-reloads |
+| Change dashboard persistence / placement rules | `src/lib/dashboard.ts`, `src/lib/dashboardStore.ts` | Dev hot-reloads |
 | Allow another image host | `next.config.ts:4-11` | Yes (config) |
 | Global colors / fonts / theme | `src/app/globals.css`, `src/app/layout.tsx` | Dev hot-reloads |
 
@@ -364,7 +382,8 @@ network.
 4. **`params` is a Promise (Next 15+).** Forgetting `await params` gives a runtime
    type error and empty values.
 5. **Composite stream keys.** `Stream.id` repeats across sources; always key by
-   `streamKey` (`MatchStreams.tsx:8-10`), not by `id`.
+   `streamKey` (`src/lib/streamed/streams.ts`), not by `id`. It is re-exported by
+   `MatchStreams.tsx` for backwards compatibility.
 6. **Poster URL ambiguity** in the upstream docs — see
    [`streamed-api.md`](./streamed-api.md) "Gotchas". Prefer badges.
 7. **Embed blocking.** Some `embedUrl` hosts refuse to be framed; the player shows
@@ -384,6 +403,28 @@ network.
     home. The header **Sports** dropdown (`src/app/layout.tsx`) and the sidebar
     arrows (`src/components/LiveSportNav.tsx`) keep them one click away — don't
     remove both.
+13. **Dashboard audio cannot be controlled.** Streams are cross-origin iframes, so
+    the page cannot mute or cycle their audio; the Focus button is visual only and
+    every tile plays its own sound.
+14. **Dashboard tile identity must be stable.** `react-grid-layout` matches tiles
+    by the widget `id` (`newWidgetId()`), which is independent of the stream, so
+    swapping a widget's stream never remounts or moves its tile. Duplicate adds are
+    rejected by `streamSelectionKey` (`matchId::source::streamId::streamNo`).
+15. **Dashboard persistence is versioned.** Widgets live under
+    `tvapp.dashboard.v1`; `parseDashboard` drops malformed entries, and
+    `DASHBOARD_VERSION` must be bumped (with a migration) if the widget shape
+    changes. The store is read through `useSyncExternalStore` so SSR and hydration
+    never disagree.
+16. **The dashboard is the one client-side fetch path.** `AddStreamPanel` and
+    `DashboardWidget` call `getStreamsForSources` in the browser because tiles are
+    created at runtime; the Streamed API sends CORS `*`. The match catalog itself
+    is still fetched server-side in `src/app/dashboard/page.tsx`.
+17. **`/api/matches/all-today` is not "today".** It returns the same 96-match set
+    as `/api/matches/all` (verified), spanning months and including `date <= 0`
+    placeholder channels. The app filters by the user's local day itself:
+    `MatchBrowser`'s `onlyToday` (used by `/schedule`) and the dashboard picker
+    (`AddStreamPanel`), both via `isSameLocalDay` from `src/lib/dates.ts`. Live
+    status comes only from `/api/matches/live` and is passed as id sets.
 
 ---
 

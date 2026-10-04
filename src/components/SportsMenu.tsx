@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 
 import type { Sport } from "@/lib/streamed/types";
@@ -8,9 +9,14 @@ import type { Sport } from "@/lib/streamed/types";
 const triggerClass =
   "text-sm text-zinc-600 transition hover:text-zinc-900 dark:text-zinc-300 dark:hover:text-zinc-100";
 
+const activeTriggerClass =
+  "text-sm font-medium text-zinc-900 underline decoration-2 underline-offset-4 dark:text-zinc-100";
+
 export function SportsMenu({ sports }: { sports: Sport[] }) {
   const [open, setOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
+  const pathname = usePathname();
+  const active = pathname.startsWith("/sports");
 
   useEffect(() => {
     if (!open) {
@@ -41,13 +47,13 @@ export function SportsMenu({ sports }: { sports: Sport[] }) {
   }, [open]);
 
   return (
-    <div ref={containerRef} className="relative">
+    <div ref={containerRef} className="relative flex">
       <button
         type="button"
         onClick={() => setOpen((value) => !value)}
         aria-haspopup="menu"
         aria-expanded={open}
-        className={triggerClass}
+        className={active ? activeTriggerClass : triggerClass}
       >
         Sports
       </button>

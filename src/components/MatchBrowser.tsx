@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 
 import { MatchCard } from "@/components/MatchCard";
 import { MatchControls } from "@/components/MatchControls";
+import { isSameLocalDay } from "@/lib/dates";
 import {
   buildSportGroups,
   filterMatches,
@@ -18,17 +19,28 @@ export function MatchBrowser({
   matches,
   sports,
   grouped = false,
+  onlyToday = false,
 }: {
   matches: APIMatch[];
   sports: Sport[];
   grouped?: boolean;
+  onlyToday?: boolean;
 }) {
   const [popularOnly, setPopularOnly] = useState(false);
   const [sort, setSort] = useState<MatchSort>("popular");
+  const [now] = useState(() => Date.now());
+
+  const scoped = useMemo(
+    () =>
+      onlyToday
+        ? matches.filter((match) => isSameLocalDay(match.date, now))
+        : matches,
+    [matches, onlyToday, now],
+  );
 
   const filtered = useMemo(
-    () => filterMatches(matches, sports, "", popularOnly),
-    [matches, sports, popularOnly],
+    () => filterMatches(scoped, sports, "", popularOnly),
+    [scoped, sports, popularOnly],
   );
 
   const groups = useMemo(
@@ -54,15 +66,19 @@ export function MatchBrowser({
         onSortChange={setSort}
       />
 
-      {popularOnly ? (
+      {totalVisible > 0 && (onlyToday || popularOnly) ? (
         <p className="text-sm text-zinc-500" aria-live="polite">
-          {totalVisible} match{totalVisible === 1 ? "" : "es"} · popular only
+          {totalVisible} match{totalVisible === 1 ? "" : "es"}
+          {onlyToday ? " scheduled today" : ""}
+          {popularOnly ? " · popular only" : ""}
         </p>
       ) : null}
 
       {totalVisible === 0 ? (
         <p className="rounded-lg border border-dashed border-black/15 p-8 text-center text-sm text-zinc-500 dark:border-white/15">
-          No matches match your filters.
+          {onlyToday
+            ? "No matches are scheduled for today."
+            : "No matches match your filters."}
         </p>
       ) : grouped ? (
         <div className="flex flex-col gap-10">
