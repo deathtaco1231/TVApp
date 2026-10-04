@@ -20,7 +20,11 @@ export async function getStreamsForSources(
           ...stream,
           source: stream.source || source,
         }));
-      } catch {
+      } catch (cause) {
+        console.warn(
+          `[streamed] failed to load streams for source "${source}" (${id}):`,
+          cause,
+        );
         return [] as Stream[];
       }
     }),

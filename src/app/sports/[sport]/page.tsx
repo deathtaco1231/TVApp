@@ -1,10 +1,31 @@
+<<<<<<< Updated upstream
 import { MatchCard } from "@/components/MatchCard";
+=======
+import type { Metadata } from "next";
+
+import { MatchBrowser } from "@/components/MatchBrowser";
+>>>>>>> Stashed changes
 import { SportFilter } from "@/components/SportFilter";
 import { getMatchesBySport } from "@/lib/streamed/matches";
 import { getSports } from "@/lib/streamed/sports";
 import type { APIMatch, Sport } from "@/lib/streamed/types";
 
 export const revalidate = 60;
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ sport: string }>;
+}): Promise<Metadata> {
+  const { sport } = await params;
+  try {
+    const sports = await getSports();
+    const name = sports.find((entry) => entry.id === sport)?.name ?? sport;
+    return { title: `${name} matches` };
+  } catch {
+    return { title: "Sport" };
+  }
+}
 
 export default async function SportPage({
   params,

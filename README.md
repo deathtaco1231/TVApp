@@ -37,6 +37,47 @@ Open <http://localhost:3000>.
 | `npm run typecheck` | `tsc --noEmit` |
 | `npm test` | Run the Jest suite |
 | `npm run test:watch` | Jest in watch mode |
+| `docker compose up -d --build` | Build the image and serve it on port 3000 (see [Run with Docker](#run-with-docker)) |
+| `docker build -t tvapp .` | Build the container image only |
+
+CI (`.github/workflows/ci.yml`) runs lint, typecheck, tests, and build on every
+push and pull request.
+
+## Run with Docker
+
+The app ships as a self-contained container, so you do not need Node.js
+installed to run it. With [Docker](https://docs.docker.com/get-docker/) (or
+Docker Desktop) installed:
+
+```bash
+docker compose up -d --build
+```
+
+Then open <http://localhost:3000>. To stop it:
+
+```bash
+docker compose down
+```
+
+To let other devices on your network reach it, use the host machine's IP, e.g.
+`http://192.168.1.20:3000` (port `3000` is published by `docker-compose.yml`).
+The image defines a `HEALTHCHECK`, so `docker compose ps` reports `healthy` once
+it is serving.
+
+Prefer plain Docker without Compose:
+
+```bash
+docker build -t tvapp .
+docker run --rm -p 3000:3000 tvapp
+```
+
+The image is built with Next.js [standalone output](https://nextjs.org/docs/app/api-reference/config/next-config-js/output),
+so the production build runs via `node server.js` inside the container rather
+than `next start`. The base image is digest-pinned for reproducible builds. The
+build needs internet access (it prerenders live data and downloads fonts).
+Normal local development is unaffected — `npm run dev` and `npm run build`
+behave exactly as before; `DOCKER_BUILD=1` (set only by the Docker build) is what
+switches on standalone mode.
 
 ## How it works
 

@@ -14,8 +14,22 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "TVApp",
+  metadataBase: new URL(
+    process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000",
+  ),
+  title: { default: "TVApp", template: "%s · TVApp" },
   description: "Live sports streaming browser powered by the Streamed API.",
+  openGraph: {
+    type: "website",
+    siteName: "TVApp",
+    title: "TVApp",
+    description: "Live sports streaming browser powered by the Streamed API.",
+  },
+  twitter: {
+    card: "summary",
+    title: "TVApp",
+    description: "Live sports streaming browser powered by the Streamed API.",
+  },
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {

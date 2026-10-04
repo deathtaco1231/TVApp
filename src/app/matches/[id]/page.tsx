@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
@@ -7,6 +8,29 @@ import { getStreamsForSources } from "@/lib/streamed/streams";
 import type { APIMatch, Stream } from "@/lib/streamed/types";
 
 export const revalidate = 30;
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ id: string }>;
+}): Promise<Metadata> {
+  const { id } = await params;
+  try {
+    const matches = await getAllMatches();
+    const match = findMatchById(matches, id);
+    if (!match) {
+      return { title: "Match not found" };
+    }
+    const description = `Watch ${match.title} — live streams on TVApp.`;
+    return {
+      title: match.title,
+      description,
+      openGraph: { title: match.title, description },
+    };
+  } catch {
+    return { title: "Match" };
+  }
+}
 
 export default async function MatchPage({
   params,

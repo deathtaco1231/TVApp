@@ -39,17 +39,35 @@ the upstream API.
 ```text
 TVApp/
   package.json            npm scripts + dependencies
-  next.config.ts          Next config (image host allow-list)
+  next.config.ts          Next config (image allow-list; headers + report-only CSP; standalone when DOCKER_BUILD=1)
+  Dockerfile              multi-stage image build (node:22-alpine digest; standalone runtime; HEALTHCHECK)
+  .dockerignore           build-context excludes
+  docker-compose.yml      one-command build + serve on :3000
+  .github/workflows/ci.yml  CI: lint + typecheck + test + build
   tsconfig.json           TypeScript + "@/*" -> "src/*" path alias
   eslint.config.mjs       ESLint (next/core-web-vitals + next/typescript)
   jest.config.mjs         Jest via next/jest
   jest.setup.ts           loads @testing-library/jest-dom
   src/
     app/                  App Router routes (folders = URL segments)
+<<<<<<< Updated upstream
       layout.tsx          root layout: <html>, fonts, header, footer
       page.tsx            "/"            -> live matches (server) + <LiveBrowser>
       globals.css         Tailwind import + theme tokens
       sports/[sport]/     "/sports/:sport" -> matches for one sport
+=======
+      layout.tsx          root layout: <html>, fonts, header nav, footer, metadata
+      page.tsx            "/"            -> live matches (server) + <LiveBrowser>
+      globals.css         Tailwind import + theme tokens
+      loading.tsx         root Suspense fallback (skeleton) for navigations
+      error.tsx           segment error boundary (client)
+      global-error.tsx    root error boundary, renders its own <html>/<body> (client)
+      not-found.tsx       branded 404
+      robots.ts           /robots.txt (allow all, points at the sitemap)
+      sitemap.ts          /sitemap.xml (static routes only)
+      schedule/           "/schedule"    -> today's matches, grouped (server)
+      sports/[sport]/     "/sports/:sport" -> all matches for one sport
+>>>>>>> Stashed changes
       matches/[id]/       "/matches/:id"   -> one match + stream picker
     components/           UI pieces
       LiveBrowser.tsx     live board: search, popular filter, sections (client)
@@ -116,6 +134,7 @@ src/**/*.ts(x)
        /sports/[sport]   dynamic (server-rendered on demand)
        /matches/[id]     dynamic (server-rendered on demand)
   -> output in .next/  (generated — never edit by hand)
+       DOCKER_BUILD=1 -> .next/standalone (container; served by `node server.js`)
 ```
 
 Notes:
@@ -127,6 +146,19 @@ Notes:
   be awaited (`src/app/matches/[id]/page.tsx:14-16`).
 - Next 16 generates route types under `.next/types/`; `next-env.d.ts:3` imports
   them. They refresh on `next dev`/`next build`.
+- **Docker build:** the `Dockerfile` builder stage sets `DOCKER_BUILD=1`, which
+  flips `output` to `standalone` (`next.config.ts`) and emits `.next/standalone`
+  with only traced dependencies. The runtime image runs `node server.js` —
+  standalone **disables `next start`**. Standalone output does not include
+  `public/` or `.next/static`, so the Dockerfile copies both explicitly. The base
+  image is pinned to a `node:22-alpine` manifest digest, the runtime defines a
+  `HEALTHCHECK`, and the builder needs network for the Streamed API **and**
+  `next/font/google`.
+- **Metadata / SEO:** `src/app/robots.ts` and `src/app/sitemap.ts` produce
+  `/robots.txt` and `/sitemap.xml`; the sitemap lists static routes only.
+  `metadataBase` reads optional `NEXT_PUBLIC_SITE_URL` (defaults to
+  `http://localhost:3000`), and `generateMetadata` in `matches/[id]` and
+  `sports/[sport]` sets page titles.
 
 ## 5. The wiring contract for a match
 
@@ -149,17 +181,17 @@ One match passes through these layers:
 1. **`sources[].source` must be a real endpoint id.** `streamsPath`
    (`streams.ts:4-6`) turns `{source, id}` into `/stream/{source}/{id}`. If
    `source` is renamed or unsupported, the request 404s and
-   `getStreamsForSources` swallows the error (`streams.ts:23-25`), so the source
-   simply vanishes with no visible error.
+   `getStreamsForSources` logs and swallows the error (`streams.ts`), so the
+   source simply vanishes from the UI (check the server console).
 2. **`match.id` must be unique and present in `/matches/all`.** The card links
    with `match.id` (`MatchCard.tsx:44`) and the detail page finds it via
    `findMatchById` (`matches.ts:36-40`) over `/matches/all`. If the id is not in
-   that list, the page calls `notFound()` (`matches/[id]/page.tsx:26-28`).
+   that list, the page calls `notFound()` (`matches/[id]/page.tsx`).
 3. **Stream list keys must be composite.** `Stream.id` is only unique *within a
    source*, so React keys use `` `${source}:${id}:${streamNo}` ``
    (`MatchStreams.tsx:8-10`). Keying by `id` alone would produce duplicate keys
    and incorrect re-renders.
-4. **The image host must be allowed.** `next.config.ts:4-11` allow-lists
+4. **The image host must be allowed.** `next.config.ts` allow-lists
    `streamed.pk` for `next/image`. Badges also pass `unoptimized`
    (`MatchCard.tsx:33`), which bypasses the optimizer entirely.
 5. **The home page's group order is fixed, not count-based.** `buildSportGroups`
@@ -336,7 +368,20 @@ network.
 | Change the card layout | `src/components/MatchCard.tsx` | Dev hot-reloads |
 | Change the player / iframe settings | `src/components/StreamPlayer.tsx:26-34` | Dev hot-reloads |
 | Change stream selection UI | `src/components/MatchStreams.tsx` | Dev hot-reloads |
+<<<<<<< Updated upstream
 | Allow another image host | `next.config.ts:4-11` | Yes (config) |
+=======
+| Change the dashboard tile grid / drag-resize | `src/components/Dashboard.tsx` | Dev hot-reloads |
+| Change a dashboard tile (header, buttons, iframe) | `src/components/DashboardWidget.tsx` | Dev hot-reloads |
+| Change the add-stream picker | `src/components/AddStreamPanel.tsx` | Dev hot-reloads |
+| Change dashboard persistence / placement rules | `src/lib/dashboard.ts`, `src/lib/dashboardStore.ts` | Dev hot-reloads |
+| Allow another image host | `next.config.ts` (`images.remotePatterns`) | Yes (config) |
+| Change security headers / CSP | `next.config.ts` (`headers()`) | Yes (config); restart dev server |
+| Adjust a route UX state (404 / error / loading) | `src/app/not-found.tsx`, `error.tsx`, `global-error.tsx`, `loading.tsx` | Dev hot-reloads |
+| Change SEO, robots, or sitemap | `src/app/layout.tsx`, `src/app/robots.ts`, `src/app/sitemap.ts`, per-route `generateMetadata` | Yes |
+| Change CI steps | `.github/workflows/ci.yml` | n/a |
+| Change the container image / port / runtime | `Dockerfile`, `docker-compose.yml`, `next.config.ts` | Yes (rebuild the image) |
+>>>>>>> Stashed changes
 | Global colors / fonts / theme | `src/app/globals.css`, `src/app/layout.tsx` | Dev hot-reloads |
 
 ## 10. Gotchas
@@ -344,7 +389,8 @@ network.
 1. **Handling a live API at build time.** `/` is prerendered, so `next build`
    performs a real network call. If the API is down or you are offline, the page
    still builds static (its `try/catch` yields the error state), but the baked
-   HTML shows the error until the next revalidation.
+   HTML shows the error until the next revalidation. The Docker build makes the
+   same call in its builder stage, so building the image also needs network.
 2. **`.next/` and `next-env.d.ts` are generated.** Never hand-edit them. Route
    types for typed `<Link href>` live in `.next/types/` and refresh on build/dev.
 3. **Silent source drops.** `getStreamsForSources` catches per-source failures and
@@ -370,6 +416,54 @@ network.
     imports (or `async`) to it without moving it out of the client tree.
 11. **Filtering state is local.** Search and "Popular only" live only in
     `LiveBrowser` state; they are not in the URL, so they reset on reload.
+<<<<<<< Updated upstream
+=======
+12. **Sport pages must stay reachable.** `/sports/[sport]` was once orphaned from
+    home. The header **Sports** dropdown (`src/app/layout.tsx`) and the sidebar
+    arrows (`src/components/LiveSportNav.tsx`) keep them one click away — don't
+    remove both.
+13. **Dashboard audio cannot be controlled.** Streams are cross-origin iframes, so
+    the page cannot mute or cycle their audio; the Focus button is visual only and
+    every tile plays its own sound.
+14. **Dashboard tile identity must be stable.** `react-grid-layout` matches tiles
+    by the widget `id` (`newWidgetId()`), which is independent of the stream, so
+    swapping a widget's stream never remounts or moves its tile. Duplicate adds are
+    rejected by `streamSelectionKey` (`matchId::source::streamId::streamNo`).
+15. **Dashboard persistence is versioned.** Widgets live under
+    `tvapp.dashboard.v1`; `parseDashboard` drops malformed entries, and
+    `DASHBOARD_VERSION` must be bumped (with a migration) if the widget shape
+    changes. The store is read through `useSyncExternalStore` so SSR and hydration
+    never disagree.
+16. **The dashboard is the one client-side fetch path.** `AddStreamPanel` and
+    `DashboardWidget` call `getStreamsForSources` in the browser because tiles are
+    created at runtime; the Streamed API sends CORS `*`. The match catalog itself
+    is still fetched server-side in `src/app/dashboard/page.tsx`.
+17. **`/api/matches/all-today` is not "today".** It returns the same 96-match set
+    as `/api/matches/all` (verified), spanning months and including `date <= 0`
+    placeholder channels. The app filters by the user's local day itself:
+    `MatchBrowser`'s `onlyToday` (used by `/schedule`) and the dashboard picker
+    (`AddStreamPanel`), both via `isSameLocalDay` from `src/lib/dates.ts`. Live
+    status comes only from `/api/matches/live` and is passed as id sets.
+18. **Standalone output is Docker-only.** `next.config.ts` sets `output:
+    "standalone"` only when `DOCKER_BUILD=1`, which the Docker builder sets. A
+    normal `npm run build` is unchanged and keeps `npm start` (`next start`)
+    working. If you reproduce the container build with `DOCKER_BUILD=1 npm run
+    build`, run `node .next/standalone/server.js` instead of `npm start`.
+19. **Security headers are safe; the CSP only reports.** `next.config.ts`
+    `headers()` enforces `X-Content-Type-Options`, `Referrer-Policy`,
+    `X-Frame-Options`, and `Permissions-Policy`. The CSP is
+    `Content-Security-Policy-Report-Only` **on purpose**: it logs violations and
+    never blocks, so it cannot break hydration, HMR, or the player iframes. Do not
+    promote it to an enforced `Content-Security-Policy` without testing. To roll
+    back, delete the `headers()` method (or just the CSP entry) in
+    `next.config.ts` — no other code depends on it.
+20. **Route UX files are Next conventions.** `error.tsx` and `global-error.tsx`
+    must be client components, and `global-error.tsx` renders its own
+    `<html>`/`<body>`. `loading.tsx` at `src/app/` adds a root Suspense boundary,
+    so navigations show its skeleton. `robots.ts`/`sitemap.ts` are static
+    (`sitemap.ts` lists only `/`, `/schedule`, `/dashboard` to avoid a build-time
+    API dependency).
+>>>>>>> Stashed changes
 
 ---
 
