@@ -39,18 +39,30 @@ the upstream API.
 ```text
 TVApp/
   package.json            npm scripts + dependencies
-  next.config.ts          Next config (image host allow-list)
+  next.config.ts          Next config (image allow-list; headers + report-only CSP; standalone when DOCKER_BUILD=1)
+  Dockerfile              multi-stage image build (node:22-alpine digest; standalone runtime; HEALTHCHECK)
+  .dockerignore           build-context excludes
+  docker-compose.yml      one-command build + serve on :3000
+  .github/workflows/ci.yml  CI: lint + typecheck + test + build
   tsconfig.json           TypeScript + "@/*" -> "src/*" path alias
   eslint.config.mjs       ESLint (next/core-web-vitals + next/typescript)
   jest.config.mjs         Jest via next/jest
   jest.setup.ts           loads @testing-library/jest-dom
   src/
     app/                  App Router routes (folders = URL segments)
-      layout.tsx          root layout: <html>, fonts, header, footer
+      layout.tsx          root layout: <html>, fonts, header nav, footer, metadata
       page.tsx            "/"            -> live matches (server) + <LiveBrowser>
       globals.css         Tailwind import + theme tokens
-      sports/[sport]/     "/sports/:sport" -> matches for one sport
+      loading.tsx         root Suspense fallback (skeleton) for navigations
+      error.tsx           segment error boundary (client)
+      global-error.tsx    root error boundary, renders its own <html>/<body> (client)
+      not-found.tsx       branded 404
+      robots.ts           /robots.txt (allow all, points at the sitemap)
+      sitemap.ts          /sitemap.xml (static routes only)
+      schedule/           "/schedule"    -> today's matches, grouped (server)
+      sports/[sport]/     "/sports/:sport" -> all matches for one sport
       matches/[id]/       "/matches/:id"   -> one match + stream picker
+      dashboard/          "/dashboard"     -> multi-stream mosaic (server shell)
     components/           UI pieces
       LiveBrowser.tsx     live board: search, popular filter, sections (client)
       LiveSportNav.tsx    sport jump-nav with live counts (client)
@@ -58,17 +70,25 @@ TVApp/
       SportFilter.tsx     sport pills for /sports pages (server component)
       MatchStreams.tsx    stream picker (client component, holds state)
       StreamPlayer.tsx    iframe player + fallback link (client component)
+      Dashboard.tsx       draggable/resizable stream board (client)
+      DashboardWidget.tsx one stream tile: iframe, swap, focus, remove (client)
+      AddStreamPanel.tsx  add-stream picker drawer (client)
+      StreamOptions.tsx   shared stream list (client, presentational)
+      LiveBadge.tsx       red "LIVE" pulse marker (presentational)
     lib/
       live.ts             pure grouping/search/sort helpers for the home page
+      dates.ts            pure kickoff / same-local-day helpers
+      dashboard.ts        pure widget identity/layout/persistence helpers
+      dashboardStore.ts   localStorage-backed external store (useSyncExternalStore)
       streamed/           the ONLY code that talks to the API
         types.ts          APIMatch / Stream / Sport / MatchSource
         client.ts         base URL, error type, streamedFetch<T>()
         matches.ts        matchesPath + getMatches/getLiveMatches/...
         sports.ts         getSports()
-        streams.ts        streamsPath + getStreams/getStreamsForSources()
+        streams.ts        streamsPath + streamKey + getStreams/getStreamsForSources()
         images.ts         badgeUrl/posterUrl/proxyImageUrl
         __tests__/        pure path-builder tests (no network)
-      __tests__/          pure live-board helper tests (no network)
+      __tests__/          pure live-board + dashboard + date helper tests (no network)
   public/                 static assets
 ```
 
@@ -99,6 +119,9 @@ today only server components fetch.
 | Routes | `src/app/**` | URL → page component |
 | UI | `src/components/**` | Presentational + interactive pieces |
 | Live board logic | `src/lib/live.ts` | Pure grouping/search/sort for the home page |
+| Date helpers | `src/lib/dates.ts` | Pure kickoff guard + same-local-day checks |
+| Dashboard logic | `src/lib/dashboard.ts` | Pure tile identity, placement, (de)serialization |
+| Dashboard state | `src/lib/dashboardStore.ts` | `localStorage`-backed external store for widgets |
 | Data access | `src/lib/streamed/**` | Typed `fetch` wrappers, the API seam |
 | Config | `next.config.ts`, `tsconfig.json`, `eslint.config.mjs` | Build/tooling |
 | Tests | `src/lib/**/__tests__/**` | Jest unit tests (pure, offline) |
@@ -113,9 +136,11 @@ src/**/*.ts(x)
   -> TypeScript check across the project  # "Running TypeScript ..."
   -> pages rendered:
        /                 static, revalidate 60s (ISR)
+       /schedule         static, revalidate 60s (ISR)
        /sports/[sport]   dynamic (server-rendered on demand)
        /matches/[id]     dynamic (server-rendered on demand)
   -> output in .next/  (generated — never edit by hand)
+       DOCKER_BUILD=1 -> .next/standalone (container; served by `node server.js`)
 ```
 
 Notes:
@@ -123,10 +148,26 @@ Notes:
 - `/` is prerendered at build time with a 60-second revalidation window because
   the page sets `export const revalidate = 60` (`src/app/page.tsx:6`) and the
   fetch default is also 60 (`src/lib/streamed/client.ts:25`).
+- The **root layout** fetches `/api/sports` (`src/app/layout.tsx`) to build the
+  header's Sports menu. The request is memoized and shares the 60s revalidate, so
+  it does not double-hit the API.
 - Route params in Next 16 are **asynchronous**: `params` is a `Promise` and must
   be awaited (`src/app/matches/[id]/page.tsx:14-16`).
 - Next 16 generates route types under `.next/types/`; `next-env.d.ts:3` imports
   them. They refresh on `next dev`/`next build`.
+- **Docker build:** the `Dockerfile` builder stage sets `DOCKER_BUILD=1`, which
+  flips `output` to `standalone` (`next.config.ts`) and emits `.next/standalone`
+  with only traced dependencies. The runtime image runs `node server.js` —
+  standalone **disables `next start`**. Standalone output does not include
+  `public/` or `.next/static`, so the Dockerfile copies both explicitly. The base
+  image is pinned to a `node:22-alpine` manifest digest, the runtime defines a
+  `HEALTHCHECK`, and the builder needs network for the Streamed API **and**
+  `next/font/google`.
+- **Metadata / SEO:** `src/app/robots.ts` and `src/app/sitemap.ts` produce
+  `/robots.txt` and `/sitemap.xml`; the sitemap lists static routes only.
+  `metadataBase` reads optional `NEXT_PUBLIC_SITE_URL` (defaults to
+  `http://localhost:3000`), and `generateMetadata` in `matches/[id]` and
+  `sports/[sport]` sets page titles.
 
 ## 5. The wiring contract for a match
 
@@ -149,17 +190,17 @@ One match passes through these layers:
 1. **`sources[].source` must be a real endpoint id.** `streamsPath`
    (`streams.ts:4-6`) turns `{source, id}` into `/stream/{source}/{id}`. If
    `source` is renamed or unsupported, the request 404s and
-   `getStreamsForSources` swallows the error (`streams.ts:23-25`), so the source
-   simply vanishes with no visible error.
+   `getStreamsForSources` logs and swallows the error (`streams.ts`), so the
+   source simply vanishes from the UI (check the server console).
 2. **`match.id` must be unique and present in `/matches/all`.** The card links
    with `match.id` (`MatchCard.tsx:44`) and the detail page finds it via
    `findMatchById` (`matches.ts:36-40`) over `/matches/all`. If the id is not in
-   that list, the page calls `notFound()` (`matches/[id]/page.tsx:26-28`).
+   that list, the page calls `notFound()` (`matches/[id]/page.tsx`).
 3. **Stream list keys must be composite.** `Stream.id` is only unique *within a
    source*, so React keys use `` `${source}:${id}:${streamNo}` ``
    (`MatchStreams.tsx:8-10`). Keying by `id` alone would produce duplicate keys
    and incorrect re-renders.
-4. **The image host must be allowed.** `next.config.ts:4-11` allow-lists
+4. **The image host must be allowed.** `next.config.ts` allow-lists
    `streamed.pk` for `next/image`. Badges also pass `unoptimized`
    (`MatchCard.tsx:33`), which bypasses the optimizer entirely.
 5. **The home page's group order is fixed, not count-based.** `buildSportGroups`
@@ -321,7 +362,9 @@ network.
 5. Use `useEffect` only to subscribe to an external system — `LiveBrowser` uses an
    `IntersectionObserver` to track the visible section. Avoid setting state
    synchronously in an effect body (the repo's ESLint config rejects it); derive
-   instead.
+   instead. For state that must survive reloads, prefer an external store read
+   through `useSyncExternalStore` (`src/lib/dashboardStore.ts`) over reading
+   `localStorage` in an effect.
 
 ## 9. Where do I change X?
 
@@ -330,13 +373,24 @@ network.
 | Change home grouping / search / ordering | `src/lib/live.ts` | Dev hot-reloads; rebuild for production |
 | Change the sport sidebar / jump behavior | `src/components/LiveSportNav.tsx` | Dev hot-reloads |
 | Change the home layout (sections, toolbar) | `src/components/LiveBrowser.tsx` | Dev hot-reloads |
+| Add/rename a header nav link | `src/app/layout.tsx` | Dev hot-reloads; rebuild for typed routes |
+| Change the Today page | `src/app/schedule/page.tsx` | Dev hot-reloads |
 | Change the API base URL | `src/lib/streamed/client.ts:1-2` | Dev hot-reloads; production build |
 | Change how long data is cached | `src/lib/streamed/client.ts:25` and the page's `export const revalidate` | Yes |
 | Add a new match filter/page | `src/app/…/page.tsx` + a helper in `matches.ts` | Yes (regenerates route types) |
 | Change the card layout | `src/components/MatchCard.tsx` | Dev hot-reloads |
 | Change the player / iframe settings | `src/components/StreamPlayer.tsx:26-34` | Dev hot-reloads |
 | Change stream selection UI | `src/components/MatchStreams.tsx` | Dev hot-reloads |
-| Allow another image host | `next.config.ts:4-11` | Yes (config) |
+| Change the dashboard tile grid / drag-resize | `src/components/Dashboard.tsx` | Dev hot-reloads |
+| Change a dashboard tile (header, buttons, iframe) | `src/components/DashboardWidget.tsx` | Dev hot-reloads |
+| Change the add-stream picker | `src/components/AddStreamPanel.tsx` | Dev hot-reloads |
+| Change dashboard persistence / placement rules | `src/lib/dashboard.ts`, `src/lib/dashboardStore.ts` | Dev hot-reloads |
+| Allow another image host | `next.config.ts` (`images.remotePatterns`) | Yes (config) |
+| Change security headers / CSP | `next.config.ts` (`headers()`) | Yes (config); restart dev server |
+| Adjust a route UX state (404 / error / loading) | `src/app/not-found.tsx`, `error.tsx`, `global-error.tsx`, `loading.tsx` | Dev hot-reloads |
+| Change SEO, robots, or sitemap | `src/app/layout.tsx`, `src/app/robots.ts`, `src/app/sitemap.ts`, per-route `generateMetadata` | Yes |
+| Change CI steps | `.github/workflows/ci.yml` | n/a |
+| Change the container image / port / runtime | `Dockerfile`, `docker-compose.yml`, `next.config.ts` | Yes (rebuild the image) |
 | Global colors / fonts / theme | `src/app/globals.css`, `src/app/layout.tsx` | Dev hot-reloads |
 
 ## 10. Gotchas
@@ -344,9 +398,13 @@ network.
 1. **Handling a live API at build time.** `/` is prerendered, so `next build`
    performs a real network call. If the API is down or you are offline, the page
    still builds static (its `try/catch` yields the error state), but the baked
-   HTML shows the error until the next revalidation.
+   HTML shows the error until the next revalidation. The Docker build makes the
+   same call in its builder stage, so building the image also needs network.
 2. **`.next/` and `next-env.d.ts` are generated.** Never hand-edit them. Route
-   types for typed `<Link href>` live in `.next/types/` and refresh on build/dev.
+   types for typed `<Link href>` (e.g. the global `LayoutProps`) live in
+   `.next/types/` and refresh on `next dev`/`next build` — and on `npm run
+   typecheck`, which runs `next typegen` first (so it works after `.next/` is
+   deleted).
 3. **Silent source drops.** `getStreamsForSources` catches per-source failures and
    returns `[]` (`streams.ts:23-25`). A typo in a source name produces a match with
    fewer streams, not an error. If a match unexpectedly shows "No streams", check
@@ -354,7 +412,8 @@ network.
 4. **`params` is a Promise (Next 15+).** Forgetting `await params` gives a runtime
    type error and empty values.
 5. **Composite stream keys.** `Stream.id` repeats across sources; always key by
-   `streamKey` (`MatchStreams.tsx:8-10`), not by `id`.
+   `streamKey` (`src/lib/streamed/streams.ts`), not by `id`. It is re-exported by
+   `MatchStreams.tsx` for backwards compatibility.
 6. **Poster URL ambiguity** in the upstream docs — see
    [`streamed-api.md`](./streamed-api.md) "Gotchas". Prefer badges.
 7. **Embed blocking.** Some `embedUrl` hosts refuse to be framed; the player shows
@@ -370,6 +429,51 @@ network.
     imports (or `async`) to it without moving it out of the client tree.
 11. **Filtering state is local.** Search and "Popular only" live only in
     `LiveBrowser` state; they are not in the URL, so they reset on reload.
+12. **Sport pages must stay reachable.** `/sports/[sport]` was once orphaned from
+    home. The header **Sports** dropdown (`src/app/layout.tsx`) and the sidebar
+    arrows (`src/components/LiveSportNav.tsx`) keep them one click away — don't
+    remove both.
+13. **Dashboard audio cannot be controlled.** Streams are cross-origin iframes, so
+    the page cannot mute or cycle their audio; the Focus button is visual only and
+    every tile plays its own sound.
+14. **Dashboard tile identity must be stable.** `react-grid-layout` matches tiles
+    by the widget `id` (`newWidgetId()`), which is independent of the stream, so
+    swapping a widget's stream never remounts or moves its tile. Duplicate adds are
+    rejected by `streamSelectionKey` (`matchId::source::streamId::streamNo`).
+15. **Dashboard persistence is versioned.** Widgets live under
+    `tvapp.dashboard.v1`; `parseDashboard` drops malformed entries, and
+    `DASHBOARD_VERSION` must be bumped (with a migration) if the widget shape
+    changes. The store is read through `useSyncExternalStore` so SSR and hydration
+    never disagree.
+16. **The dashboard is the one client-side fetch path.** `AddStreamPanel` and
+    `DashboardWidget` call `getStreamsForSources` in the browser because tiles are
+    created at runtime; the Streamed API sends CORS `*`. The match catalog itself
+    is still fetched server-side in `src/app/dashboard/page.tsx`.
+17. **`/api/matches/all-today` is not "today".** It returns the same 96-match set
+    as `/api/matches/all` (verified), spanning months and including `date <= 0`
+    placeholder channels. The app filters by the user's local day itself:
+    `MatchBrowser`'s `onlyToday` (used by `/schedule`) and the dashboard picker
+    (`AddStreamPanel`), both via `isSameLocalDay` from `src/lib/dates.ts`. Live
+    status comes only from `/api/matches/live` and is passed as id sets.
+18. **Standalone output is Docker-only.** `next.config.ts` sets `output:
+    "standalone"` only when `DOCKER_BUILD=1`, which the Docker builder sets. A
+    normal `npm run build` is unchanged and keeps `npm start` (`next start`)
+    working. If you reproduce the container build with `DOCKER_BUILD=1 npm run
+    build`, run `node .next/standalone/server.js` instead of `npm start`.
+19. **Security headers are safe; the CSP only reports.** `next.config.ts`
+    `headers()` enforces `X-Content-Type-Options`, `Referrer-Policy`,
+    `X-Frame-Options`, and `Permissions-Policy`. The CSP is
+    `Content-Security-Policy-Report-Only` **on purpose**: it logs violations and
+    never blocks, so it cannot break hydration, HMR, or the player iframes. Do not
+    promote it to an enforced `Content-Security-Policy` without testing. To roll
+    back, delete the `headers()` method (or just the CSP entry) in
+    `next.config.ts` — no other code depends on it.
+20. **Route UX files are Next conventions.** `error.tsx` and `global-error.tsx`
+    must be client components, and `global-error.tsx` renders its own
+    `<html>`/`<body>`. `loading.tsx` at `src/app/` adds a root Suspense boundary,
+    so navigations show its skeleton. `robots.ts`/`sitemap.ts` are static
+    (`sitemap.ts` lists only `/`, `/schedule`, `/dashboard` to avoid a build-time
+    API dependency).
 
 ---
 

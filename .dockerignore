@@ -1,0 +1,20 @@
+node_modules
+.next
+.git
+.gitignore
+coverage
+*.tsbuildinfo
+next-env.d.ts
+.env*
+README.md
+Dockerfile
+.dockerignore
+docker-compose.yml
+
+# personal / editor files (see .gitignore)
+AGENTS.md
+opencode.json
+.opencode
+.vscode
+.idea
+.DS_Store

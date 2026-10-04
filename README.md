@@ -4,11 +4,15 @@ A small web app for browsing and watching live sports streams. It is a thin clie
 over the public [Streamed API](https://streamed.pk/docs): no accounts, no backend,
 no database of its own.
 
-This started as a learning project for React and Next.js, and is built so a
-beginner can follow one piece of data from the API to the screen. The home page
+This started as a practical tool for finding live sports streams, and doubles as
+a vehicle for learning React and Next.js. It is deliberately structured so you
+can follow one piece of data from the API to the screen. The home page
 groups **live matches by sport** with a jump-nav sidebar, global search, and a
-popular-only filter. Each match opens a **match page** with a stream picker and an
-embedded player.
+popular-only filter. A persistent header links **Live**, **Today** (today's full
+schedule across sports), and every sport. The **Today** and per-sport pages offer
+a popular-only filter plus a sort control (Popular / Soonest / Latest / Most
+sources). Each match opens a **match page** with a stream picker and an embedded
+player.
 
 ## Tech stack
 
@@ -34,9 +38,50 @@ Open <http://localhost:3000>.
 | `npm run build` | Production build; also type-checks every page |
 | `npm start` | Serve the production build |
 | `npm run lint` | Run ESLint |
-| `npm run typecheck` | `tsc --noEmit` |
+| `npm run typecheck` | Generate route types, then `tsc --noEmit` |
 | `npm test` | Run the Jest suite |
 | `npm run test:watch` | Jest in watch mode |
+| `docker compose up -d --build` | Build the image and serve it on port 3000 (see [Run with Docker](#run-with-docker)) |
+| `docker build -t tvapp .` | Build the container image only |
+
+CI (`.github/workflows/ci.yml`) runs lint, typecheck, tests, and build on every
+push and pull request.
+
+## Run with Docker
+
+The app ships as a self-contained container, so you do not need Node.js
+installed to run it. With [Docker](https://docs.docker.com/get-docker/) (or
+Docker Desktop) installed:
+
+```bash
+docker compose up -d --build
+```
+
+Then open <http://localhost:3000>. To stop it:
+
+```bash
+docker compose down
+```
+
+To let other devices on your network reach it, use the host machine's IP, e.g.
+`http://192.168.1.20:3000` (port `3000` is published by `docker-compose.yml`).
+The image defines a `HEALTHCHECK`, so `docker compose ps` reports `healthy` once
+it is serving.
+
+Prefer plain Docker without Compose:
+
+```bash
+docker build -t tvapp .
+docker run --rm -p 3000:3000 tvapp
+```
+
+The image is built with Next.js [standalone output](https://nextjs.org/docs/app/api-reference/config/next-config-js/output),
+so the production build runs via `node server.js` inside the container rather
+than `next start`. The base image is digest-pinned for reproducible builds. The
+build needs internet access (it prerenders live data and downloads fonts).
+Normal local development is unaffected — `npm run dev` and `npm run build`
+behave exactly as before; `DOCKER_BUILD=1` (set only by the Docker build) is what
+switches on standalone mode.
 
 ## How it works
 
@@ -47,8 +92,10 @@ touches `fetch`.
 
 ```text
 src/app/                     routes (App Router)
-  page.tsx                   home → live matches
-  sports/[sport]/page.tsx    matches for one sport
+  layout.tsx                 shell + header nav (Live / Today / Sports)
+  page.tsx                   home → live matches, grouped by sport
+  schedule/page.tsx          today's matches across sports
+  sports/[sport]/page.tsx    all matches for one sport
   matches/[id]/page.tsx      one match → stream picker + player
 src/components/              presentational + interactive pieces
 src/lib/
@@ -64,6 +111,11 @@ src/lib/
   concepts using this repo's own files.
 - [`docs/streamed-api.md`](docs/streamed-api.md) — the Streamed API endpoints and
   object shapes this app relies on.
+
+## Future ideas
+
+- A single, persistent **search bar in the app shell** — one location that never
+  moves or disappears — instead of search living only on the home board.
 
 ## Legal
 
