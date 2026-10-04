@@ -4,7 +4,8 @@ import { useEffect, useMemo, useRef, useState } from "react";
 
 import { LiveSportNav } from "@/components/LiveSportNav";
 import { MatchCard } from "@/components/MatchCard";
-import { buildSportGroups } from "@/lib/live";
+import { MatchControls } from "@/components/MatchControls";
+import { buildSportGroups, type MatchSort } from "@/lib/live";
 import type { APIMatch, Sport } from "@/lib/streamed/types";
 
 export function LiveBrowser({
@@ -16,11 +17,12 @@ export function LiveBrowser({
 }) {
   const [query, setQuery] = useState("");
   const [popularOnly, setPopularOnly] = useState(false);
+  const [sort, setSort] = useState<MatchSort>("popular");
   const [activeId, setActiveId] = useState<string | null>(null);
 
   const groups = useMemo(
-    () => buildSportGroups(matches, sports, query, popularOnly),
-    [matches, sports, query, popularOnly],
+    () => buildSportGroups(matches, sports, query, popularOnly, sort),
+    [matches, sports, query, popularOnly, sort],
   );
 
   const groupIds = groups.map((group) => group.id).join(",");
@@ -72,25 +74,22 @@ export function LiveBrowser({
 
   return (
     <div className="mt-6">
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+      <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
         <input
           type="search"
           value={query}
           onChange={(event) => setQuery(event.target.value)}
           placeholder="Search teams, matches, or sports..."
           aria-label="Search live matches"
-          className="w-full rounded-lg border border-black/10 bg-white px-3 py-2 text-sm outline-none transition focus:border-black/40 sm:max-w-sm dark:border-white/15 dark:bg-zinc-900 dark:focus:border-white/40"
+          className="w-full rounded-lg border border-black/10 bg-white px-3 py-2 text-sm outline-none transition focus:border-black/40 focus-visible:ring-2 focus-visible:ring-foreground/40 lg:max-w-sm dark:border-white/15 dark:bg-zinc-900 dark:focus:border-white/40"
         />
 
-        <label className="flex items-center gap-2 text-sm text-zinc-600 dark:text-zinc-300">
-          <input
-            type="checkbox"
-            checked={popularOnly}
-            onChange={(event) => setPopularOnly(event.target.checked)}
-            className="size-4 rounded border-black/20 accent-foreground dark:border-white/20"
-          />
-          Popular only
-        </label>
+        <MatchControls
+          popularOnly={popularOnly}
+          onPopularOnlyChange={setPopularOnly}
+          sort={sort}
+          onSortChange={setSort}
+        />
       </div>
 
       <p className="mt-3 text-sm text-zinc-500" aria-live="polite">

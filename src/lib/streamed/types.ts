@@ -36,4 +36,5 @@ export interface Stream {
   hd: boolean;
   embedUrl: string;
   source: string;
+  viewers?: number;
 }

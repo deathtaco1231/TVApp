@@ -22,7 +22,7 @@ Upstream documentation: <https://streamed.pk/docs>
 | `GET /api/sports` | `Sport[]` | `getSports()` |
 | `GET /api/matches/{sport}` | `APIMatch[]` for one sport | `getMatchesBySport(sport)` |
 | `GET /api/matches/all` | `APIMatch[]` across all sports | `getAllMatches()` |
-| `GET /api/matches/all-today` | `APIMatch[]` scheduled today | `getTodayMatches()` |
+| `GET /api/matches/all-today` | `APIMatch[]` **currently the full set (== `/all`)** | `getTodayMatches()` |
 | `GET /api/matches/live` | `APIMatch[]` currently live | `getLiveMatches()` |
 | `GET /api/matches/{filter}/popular` | popular-only variant | pass `popular = true` |
 | `GET /api/stream/{source}/{id}` | `Stream[]` | `getStreams(source, id)` |
@@ -59,6 +59,7 @@ interface Stream {
   hd: boolean;
   embedUrl: string;  // iframe src for the player
   source: string;    // e.g. "alpha"
+  viewers?: number;  // current viewer count for this stream
 }
 ```
 
@@ -100,3 +101,14 @@ raw `embedUrl` as a link, which is handy for casting to a TV.
 4. **`Source` strings must match the endpoints exactly.** A renamed or unsupported
    source makes `/api/stream/...` return 404; TVApp silently drops that source
    (see `getStreamsForSources`) so one dead source does not break the page.
+5. **Viewer counts are per-stream, not per-match.** `viewers` appears on
+   `/api/stream/{source}/{id}` responses but not on match objects. Sorting the
+   match list by viewers would need one request per source per match (no batch
+   endpoint), so TVApp only displays it on the match page.
+6. **`/matches/all-today` is not "today".** Verified: it returns the *same* set
+   as `/matches/all` (96 matches spanning months, sorted by `date`), including
+   stale entries (e.g. 2016) and placeholder "channels" whose `date` is `0`. TVApp
+   therefore does its own day filtering with `isSameLocalDay` in
+   `src/lib/dates.ts`: `/schedule` via `MatchBrowser`'s `onlyToday`, and the
+   dashboard picker via `AddStreamPanel`. Live status comes only from
+   `/matches/live` and is passed around as a set of ids.

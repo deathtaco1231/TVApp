@@ -192,7 +192,8 @@ state synchronously inside an effect body.)
   is the route; `layout.tsx` wraps everything. Brackets make a dynamic segment:
   `src/app/matches/[id]/page.tsx` (`ONBOARDING.md` §2 has the full map).
 - **Root layout.** `src/app/layout.tsx` renders the `<html>`/`<body>` shell, loads
-  fonts, and draws the header/footer shared by every page.
+  fonts, and draws the shared header/footer. It is `async` because it fetches the
+  sport list for the header menu; the same fetch is memoized for the page.
 - **`params` is a Promise.** In Next 16 you must `await` it:
 
   ```tsx

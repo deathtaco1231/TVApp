@@ -4,11 +4,15 @@ A small web app for browsing and watching live sports streams. It is a thin clie
 over the public [Streamed API](https://streamed.pk/docs): no accounts, no backend,
 no database of its own.
 
-This started as a learning project for React and Next.js, and is built so a
-beginner can follow one piece of data from the API to the screen. The home page
+This started as a practical tool for finding live sports streams, and doubles as
+a vehicle for learning React and Next.js. It is deliberately structured so you
+can follow one piece of data from the API to the screen. The home page
 groups **live matches by sport** with a jump-nav sidebar, global search, and a
-popular-only filter. Each match opens a **match page** with a stream picker and an
-embedded player.
+popular-only filter. A persistent header links **Live**, **Today** (today's full
+schedule across sports), and every sport. The **Today** and per-sport pages offer
+a popular-only filter plus a sort control (Popular / Soonest / Latest / Most
+sources). Each match opens a **match page** with a stream picker and an embedded
+player.
 
 ## Tech stack
 
@@ -34,7 +38,7 @@ Open <http://localhost:3000>.
 | `npm run build` | Production build; also type-checks every page |
 | `npm start` | Serve the production build |
 | `npm run lint` | Run ESLint |
-| `npm run typecheck` | `tsc --noEmit` |
+| `npm run typecheck` | Generate route types, then `tsc --noEmit` |
 | `npm test` | Run the Jest suite |
 | `npm run test:watch` | Jest in watch mode |
 | `docker compose up -d --build` | Build the image and serve it on port 3000 (see [Run with Docker](#run-with-docker)) |
@@ -88,8 +92,10 @@ touches `fetch`.
 
 ```text
 src/app/                     routes (App Router)
-  page.tsx                   home → live matches
-  sports/[sport]/page.tsx    matches for one sport
+  layout.tsx                 shell + header nav (Live / Today / Sports)
+  page.tsx                   home → live matches, grouped by sport
+  schedule/page.tsx          today's matches across sports
+  sports/[sport]/page.tsx    all matches for one sport
   matches/[id]/page.tsx      one match → stream picker + player
 src/components/              presentational + interactive pieces
 src/lib/
@@ -105,6 +111,11 @@ src/lib/
   concepts using this repo's own files.
 - [`docs/streamed-api.md`](docs/streamed-api.md) — the Streamed API endpoints and
   object shapes this app relies on.
+
+## Future ideas
+
+- A single, persistent **search bar in the app shell** — one location that never
+  moves or disappears — instead of search living only on the home board.
 
 ## Legal
 

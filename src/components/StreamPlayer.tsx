@@ -9,7 +9,7 @@ export function StreamPlayer({ stream }: { stream: Stream }) {
 
   return (
     <div className="flex flex-col gap-2">
-      <div className="relative aspect-video w-full overflow-hidden rounded-xl bg-black">
+      <div className="relative mx-auto aspect-video w-full max-w-[calc((100vh-16rem)*16/9)] overflow-hidden rounded-xl bg-black">
         {blocked ? (
           <div className="flex h-full flex-col items-center justify-center gap-3 p-6 text-center text-sm text-zinc-300">
             <p>This source refused to be embedded in the page.</p>
@@ -41,6 +41,12 @@ export function StreamPlayer({ stream }: { stream: Stream }) {
         <span>{stream.hd ? "HD" : "SD"}</span>
         <span aria-hidden>·</span>
         <span>{stream.language}</span>
+        {stream.viewers !== undefined ? (
+          <>
+            <span aria-hidden>·</span>
+            <span>{stream.viewers} viewers</span>
+          </>
+        ) : null}
         <a
           href={stream.embedUrl}
           target="_blank"
