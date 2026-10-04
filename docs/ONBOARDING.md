@@ -353,7 +353,10 @@ network.
    still builds static (its `try/catch` yields the error state), but the baked
    HTML shows the error until the next revalidation.
 2. **`.next/` and `next-env.d.ts` are generated.** Never hand-edit them. Route
-   types for typed `<Link href>` live in `.next/types/` and refresh on build/dev.
+   types for typed `<Link href>` (e.g. the global `LayoutProps`) live in
+   `.next/types/` and refresh on `next dev`/`next build` — and on `npm run
+   typecheck`, which runs `next typegen` first (so it works after `.next/` is
+   deleted).
 3. **Silent source drops.** `getStreamsForSources` catches per-source failures and
    returns `[]` (`streams.ts:23-25`). A typo in a source name produces a match with
    fewer streams, not an error. If a match unexpectedly shows "No streams", check

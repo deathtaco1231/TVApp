@@ -35,7 +35,7 @@ Open <http://localhost:3000>.
 | `npm run build` | Production build; also type-checks every page |
 | `npm start` | Serve the production build |
 | `npm run lint` | Run ESLint |
-| `npm run typecheck` | `tsc --noEmit` |
+| `npm run typecheck` | Generate route types, then `tsc --noEmit` |
 | `npm test` | Run the Jest suite |
 | `npm run test:watch` | Jest in watch mode |
 
