@@ -59,6 +59,7 @@ interface Stream {
   hd: boolean;
   embedUrl: string;  // iframe src for the player
   source: string;    // e.g. "alpha"
+  viewers?: number;  // current viewer count for this stream
 }
 ```
 
@@ -100,3 +101,7 @@ raw `embedUrl` as a link, which is handy for casting to a TV.
 4. **`Source` strings must match the endpoints exactly.** A renamed or unsupported
    source makes `/api/stream/...` return 404; TVApp silently drops that source
    (see `getStreamsForSources`) so one dead source does not break the page.
+5. **Viewer counts are per-stream, not per-match.** `viewers` appears on
+   `/api/stream/{source}/{id}` responses but not on match objects. Sorting the
+   match list by viewers would need one request per source per match (no batch
+   endpoint), so TVApp only displays it on the match page.

@@ -30,7 +30,7 @@ export default async function MatchPage({
   const streams: Stream[] = await getStreamsForSources(match.sources);
 
   return (
-    <div className="mx-auto w-full max-w-3xl px-4 py-8">
+    <div className="mx-auto w-full max-w-7xl px-4 py-8 2xl:max-w-[1600px]">
       <Link href="/" className="text-sm text-zinc-500 hover:underline">
         &larr; Back to live
       </Link>

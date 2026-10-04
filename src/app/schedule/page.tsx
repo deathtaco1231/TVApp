@@ -1,4 +1,4 @@
-import { MatchCard } from "@/components/MatchCard";
+import { MatchBrowser } from "@/components/MatchBrowser";
 import { buildSportGroups } from "@/lib/live";
 import { getTodayMatches } from "@/lib/streamed/matches";
 import { getSports } from "@/lib/streamed/sports";
@@ -23,7 +23,7 @@ export default async function SchedulePage() {
   const groups = buildSportGroups(matches, sports);
 
   return (
-    <div className="mx-auto w-full max-w-5xl px-4 py-8">
+    <div className="mx-auto w-full max-w-7xl px-4 py-8 2xl:max-w-[1600px]">
       <h1 className="text-2xl font-semibold tracking-tight">
         Today&apos;s matches
       </h1>
@@ -42,33 +42,7 @@ export default async function SchedulePage() {
             No matches are scheduled for today.
           </p>
         ) : (
-          <div className="flex flex-col gap-10">
-            {groups.map((group) => (
-              <section
-                key={group.id}
-                id={`sport-${group.id}`}
-                aria-labelledby={`sport-${group.id}-heading`}
-              >
-                <div className="flex items-baseline justify-between">
-                  <h2
-                    id={`sport-${group.id}-heading`}
-                    className="text-lg font-semibold tracking-tight"
-                  >
-                    {group.name}
-                  </h2>
-                  <span className="text-xs text-zinc-500">
-                    {group.matches.length}
-                  </span>
-                </div>
-
-                <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                  {group.matches.map((match) => (
-                    <MatchCard key={match.id} match={match} />
-                  ))}
-                </div>
-              </section>
-            ))}
-          </div>
+          <MatchBrowser matches={matches} sports={sports} grouped />
         )}
       </div>
     </div>

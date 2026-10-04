@@ -18,7 +18,7 @@ export default async function HomePage() {
   }
 
   return (
-    <div className="mx-auto w-full max-w-5xl px-4 py-8">
+    <div className="mx-auto w-full max-w-7xl px-4 py-8 2xl:max-w-[1600px]">
       <h1 className="text-2xl font-semibold tracking-tight">Live now</h1>
 
       {error ? (

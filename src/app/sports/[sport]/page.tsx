@@ -1,4 +1,4 @@
-import { MatchCard } from "@/components/MatchCard";
+import { MatchBrowser } from "@/components/MatchBrowser";
 import { SportFilter } from "@/components/SportFilter";
 import { getMatchesBySport } from "@/lib/streamed/matches";
 import { getSports } from "@/lib/streamed/sports";
@@ -31,7 +31,7 @@ export default async function SportPage({
     sports.find((entry) => entry.id === sport)?.name ?? sport;
 
   return (
-    <div className="mx-auto w-full max-w-5xl px-4 py-8">
+    <div className="mx-auto w-full max-w-7xl px-4 py-8 2xl:max-w-[1600px]">
       <SportFilter sports={sports} activeSport={sport} />
 
       <h1 className="mt-6 text-2xl font-semibold tracking-tight capitalize">
@@ -51,11 +51,7 @@ export default async function SportPage({
             No {sportName} matches are scheduled right now.
           </p>
         ) : (
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {matches.map((match) => (
-              <MatchCard key={match.id} match={match} />
-            ))}
-          </div>
+          <MatchBrowser matches={matches} sports={sports} />
         )}
       </div>
     </div>

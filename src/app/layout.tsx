@@ -39,7 +39,7 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
     >
       <body className="min-h-full flex flex-col font-sans">
         <header className="border-b border-black/10 dark:border-white/10">
-          <div className="mx-auto flex w-full max-w-5xl flex-wrap items-center gap-x-4 gap-y-2 px-4 py-3">
+          <div className="mx-auto flex w-full max-w-7xl flex-wrap items-center gap-x-4 gap-y-2 px-4 py-3 2xl:max-w-[1600px]">
             <Link href="/" className="text-lg font-semibold tracking-tight">
               TVApp
             </Link>
