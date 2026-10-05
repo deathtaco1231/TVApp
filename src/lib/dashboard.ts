@@ -23,6 +23,9 @@ export interface DashboardWidget {
 
 export const DASHBOARD_VERSION = 1;
 export const DASHBOARD_COLS = 12;
+export const GRID_MARGIN: [number, number] = [12, 12];
+export const DEFAULT_ROW_HEIGHT = 40;
+export const MAX_ROW_HEIGHT = 80;
 export const DEFAULT_WIDGET_SIZE: Pick<WidgetLayout, "w" | "h"> = {
   w: 4,
   h: 5,
@@ -176,6 +179,23 @@ export function findNextSlot(
   }
 
   return { x: 0, y: maxRow, w: width, h };
+}
+
+export function tileRowHeight(containerWidth: number): number {
+  if (!Number.isFinite(containerWidth) || containerWidth <= 0) {
+    return DEFAULT_ROW_HEIGHT;
+  }
+  const [marginX, marginY] = GRID_MARGIN;
+  const { w: targetW, h: targetH } = DEFAULT_WIDGET_SIZE;
+  const colWidth =
+    (containerWidth - marginX * (DASHBOARD_COLS - 1)) / DASHBOARD_COLS;
+  const itemWidth = colWidth * targetW + marginX * (targetW - 1);
+  const itemHeight = (itemWidth * 9) / 16;
+  const rowHeight = (itemHeight - marginY * (targetH - 1)) / targetH;
+  return Math.min(
+    MAX_ROW_HEIGHT,
+    Math.max(DEFAULT_ROW_HEIGHT, Math.round(rowHeight)),
+  );
 }
 
 export function mergeCatalog(

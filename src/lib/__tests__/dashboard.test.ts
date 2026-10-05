@@ -2,12 +2,15 @@ import {
   addWidget,
   createWidget,
   DASHBOARD_VERSION,
+  DEFAULT_ROW_HEIGHT,
   findNextSlot,
+  MAX_ROW_HEIGHT,
   mergeCatalog,
   parseDashboard,
   removeWidget,
   serializeDashboard,
   streamSelectionKey,
+  tileRowHeight,
   updateWidgetLayout,
   updateWidgetStream,
   updateWidgetsLayout,
@@ -230,6 +233,26 @@ describe("findNextSlot", () => {
     ];
 
     expect(findNextSlot(widgets)).toEqual({ x: 0, y: 5, w: 4, h: 5 });
+  });
+});
+
+describe("tileRowHeight", () => {
+  it("falls back to the default for a missing or invalid width", () => {
+    expect(tileRowHeight(0)).toBe(DEFAULT_ROW_HEIGHT);
+    expect(tileRowHeight(-100)).toBe(DEFAULT_ROW_HEIGHT);
+    expect(tileRowHeight(Number.NaN)).toBe(DEFAULT_ROW_HEIGHT);
+  });
+
+  it("keeps the default on laptop widths", () => {
+    expect(tileRowHeight(1280)).toBe(DEFAULT_ROW_HEIGHT);
+  });
+
+  it("grows tiles on wide screens so a default tile stays near 16:9", () => {
+    expect(tileRowHeight(1920)).toBe(62);
+  });
+
+  it("caps the row height on very wide screens", () => {
+    expect(tileRowHeight(4000)).toBe(MAX_ROW_HEIGHT);
   });
 });
 

@@ -12,10 +12,12 @@ import { AddStreamPanel } from "@/components/AddStreamPanel";
 import { DashboardWidget } from "@/components/DashboardWidget";
 import {
   DASHBOARD_COLS,
+  GRID_MARGIN,
   MIN_WIDGET_SIZE,
   createWidget,
   findNextSlot,
   streamSelectionKey,
+  tileRowHeight,
 } from "@/lib/dashboard";
 import {
   addDashboardWidget,
@@ -28,9 +30,6 @@ import {
 } from "@/lib/dashboardStore";
 import { sportNameById } from "@/lib/live";
 import type { APIMatch, Sport, Stream } from "@/lib/streamed/types";
-
-const ROW_HEIGHT = 40;
-const GRID_MARGIN: [number, number] = [12, 12];
 
 const primaryButton =
   "rounded-lg bg-foreground text-sm font-medium text-background transition hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-foreground focus-visible:ring-offset-2 focus-visible:ring-offset-background active:scale-[.98]";
@@ -49,6 +48,7 @@ export function Dashboard({
   const [focusedId, setFocusedId] = useState<string | null>(null);
   const [interacting, setInteracting] = useState(false);
   const { width, containerRef, mounted } = useContainerWidth();
+  const rowHeight = tileRowHeight(width);
 
   const matchById = useMemo(
     () => new Map(matches.map((match) => [match.id, match])),
@@ -125,11 +125,15 @@ export function Dashboard({
   }
 
   return (
-    <div className="mt-6">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <p className="text-sm text-zinc-500">
-          {widgets.length} stream{widgets.length === 1 ? "" : "s"} on the board
-        </p>
+    <div>
+      <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-2">
+        <div className="flex min-w-0 flex-wrap items-baseline gap-x-3 gap-y-1">
+          <h1 className="text-2xl font-semibold tracking-tight">Dashboard</h1>
+          <p className="text-sm text-zinc-500" aria-live="polite">
+            {widgets.length} stream{widgets.length === 1 ? "" : "s"} on the
+            board
+          </p>
+        </div>
         <div className="flex items-center gap-2">
           {widgets.length > 0 ? (
             <button
@@ -150,13 +154,13 @@ export function Dashboard({
         </div>
       </div>
 
-      <p className="mt-2 text-xs text-zinc-500">
+      <p className="mt-1.5 text-xs text-zinc-500">
         Drag a tile by its header to move it and use the bottom-right corner to
         resize. Each stream plays its own audio — use the Focus button to
         highlight the one you are watching.
       </p>
 
-      <div ref={containerRef} className="relative mt-4">
+      <div ref={containerRef} className="relative mt-3">
         {mounted && widgets.length > 0 ? (
           <ReactGridLayout
             width={width}
@@ -164,7 +168,7 @@ export function Dashboard({
             compactor={noCompactor}
             gridConfig={{
               cols: DASHBOARD_COLS,
-              rowHeight: ROW_HEIGHT,
+              rowHeight,
               margin: GRID_MARGIN,
               containerPadding: [0, 0],
             }}
