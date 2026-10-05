@@ -4,6 +4,7 @@ import { useState } from "react";
 
 import { StreamOptions } from "@/components/StreamOptions";
 import type { DashboardWidget as DashboardWidgetModel } from "@/lib/dashboard";
+import { IFRAME_ALLOW, IFRAME_REFERRER_POLICY } from "@/lib/embed";
 import { getStreamsForSources } from "@/lib/streamed/streams";
 import type { APIMatch, Stream } from "@/lib/streamed/types";
 
@@ -203,7 +204,8 @@ export function DashboardWidget({
             title={`${widget.title} — ${widget.source} stream ${widget.streamNo}`}
             src={widget.embedUrl}
             className="widget-action h-full w-full"
-            allow="encrypted-media; picture-in-picture; fullscreen"
+            allow={IFRAME_ALLOW}
+            referrerPolicy={IFRAME_REFERRER_POLICY}
             allowFullScreen
             onError={() => setBlockedUrl(widget.embedUrl)}
           />

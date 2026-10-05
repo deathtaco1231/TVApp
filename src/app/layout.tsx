@@ -3,6 +3,7 @@ import { Geist, Geist_Mono } from "next/font/google";
 import Link from "next/link";
 import { SportsMenu } from "@/components/SportsMenu";
 import { NavLink } from "@/components/NavLink";
+import { RedirectGuardToggle } from "@/components/RedirectGuardToggle";
 import { getSports } from "@/lib/streamed/sports";
 import type { Sport } from "@/lib/streamed/types";
 import "./globals.css";
@@ -73,14 +74,17 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
               <NavLink href="/dashboard">Dashboard</NavLink>
             </nav>
 
-            <a
-              href="https://streamed.pk/docs"
-              target="_blank"
-              rel="noopener noreferrer"
-              className={`ml-auto ${navLink}`}
-            >
-              API docs
-            </a>
+            <div className="ml-auto flex flex-wrap items-center gap-x-4 gap-y-2">
+              <RedirectGuardToggle />
+              <a
+                href="https://streamed.pk/docs"
+                target="_blank"
+                rel="noopener noreferrer"
+                className={navLink}
+              >
+                API docs
+              </a>
+            </div>
           </div>
         </header>
 

@@ -416,8 +416,14 @@ network.
    `MatchStreams.tsx` for backwards compatibility.
 6. **Poster URL ambiguity** in the upstream docs — see
    [`streamed-api.md`](./streamed-api.md) "Gotchas". Prefer badges.
-7. **Embed blocking.** Some `embedUrl` hosts refuse to be framed; the player shows
-   an "open raw link" fallback.
+7. **Embeds are intentionally not sandboxed.** Providers detect the `sandbox`
+   attribute and refuse to play, and a parent page cannot contain a cross-origin
+   frame's popups or top-level navigation anyway. Instead, an optional redirect
+   guard (`src/components/RedirectGuard.tsx`, toggled in the header) attaches
+   `beforeunload` so a *top-level* ad redirect shows a browser confirmation. It
+   cannot catch popups or downloads. Real protection is network-level
+   (DNS/ad-block filtering). Some `embedUrl` hosts also refuse to be framed; the
+   player shows an "open raw link" fallback either way.
 8. **Rebuild vs hot-reload.** Component and page edits hot-reload in `npm run dev`;
    `next.config.ts`, `package.json`, and `.env` changes need a dev-server restart.
 9. **Home order is intentionally stable.** Groups are alphabetical by sport name

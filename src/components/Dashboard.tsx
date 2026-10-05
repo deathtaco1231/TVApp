@@ -10,6 +10,7 @@ import "react-grid-layout/css/styles.css";
 
 import { AddStreamPanel } from "@/components/AddStreamPanel";
 import { DashboardWidget } from "@/components/DashboardWidget";
+import { RedirectGuard } from "@/components/RedirectGuard";
 import {
   DASHBOARD_COLS,
   GRID_MARGIN,
@@ -126,6 +127,8 @@ export function Dashboard({
 
   return (
     <div>
+      {widgets.length > 0 ? <RedirectGuard /> : null}
+
       <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-2">
         <div className="flex min-w-0 flex-wrap items-baseline gap-x-3 gap-y-1">
           <h1 className="text-2xl font-semibold tracking-tight">Dashboard</h1>

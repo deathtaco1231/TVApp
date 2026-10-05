@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 
+import { IFRAME_ALLOW, IFRAME_REFERRER_POLICY } from "@/lib/embed";
 import type { Stream } from "@/lib/streamed/types";
 
 export function StreamPlayer({ stream }: { stream: Stream }) {
@@ -28,7 +29,8 @@ export function StreamPlayer({ stream }: { stream: Stream }) {
             title={`${stream.source} stream ${stream.streamNo} (${stream.language})`}
             src={stream.embedUrl}
             className="h-full w-full"
-            allow="encrypted-media; picture-in-picture; fullscreen"
+            allow={IFRAME_ALLOW}
+            referrerPolicy={IFRAME_REFERRER_POLICY}
             allowFullScreen
             onError={() => setBlocked(true)}
           />

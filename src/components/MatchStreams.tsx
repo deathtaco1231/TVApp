@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 
+import { RedirectGuard } from "@/components/RedirectGuard";
 import { StreamPlayer } from "@/components/StreamPlayer";
 import { streamKey } from "@/lib/streamed/streams";
 import type { Stream } from "@/lib/streamed/types";
@@ -30,6 +31,7 @@ export function MatchStreams({ streams }: { streams: Stream[] }) {
 
   return (
     <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_320px]">
+      <RedirectGuard />
       <div className="min-w-0">
         {selected ? <StreamPlayer stream={selected} /> : null}
       </div>

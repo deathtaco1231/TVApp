@@ -112,3 +112,11 @@ raw `embedUrl` as a link, which is handy for casting to a TV.
    `src/lib/dates.ts`: `/schedule` via `MatchBrowser`'s `onlyToday`, and the
    dashboard picker via `AddStreamPanel`. Live status comes only from
    `/matches/live` and is passed around as a set of ids.
+7. **Embeds are intentionally not sandboxed.** Some `embedUrl` pages open ad
+   popups or navigate the top window when you press play. TVApp does not sandbox
+   the iframe: providers detect the `sandbox` attribute and refuse to play (a red
+   "Remove sandbox attributes on the iframe tag" screen), and a parent page cannot
+   otherwise contain a cross-origin frame's popups or top-level navigation. The
+   only in-app mitigation is the optional redirect guard (see `ONBOARDING.md`);
+   real protection against malicious ad destinations is network-level
+   (DNS/ad-block filtering).
