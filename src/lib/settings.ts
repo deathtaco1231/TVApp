@@ -3,10 +3,12 @@ export const SETTINGS_KEY = "tvapp.settings.v1";
 
 export interface AppSettings {
   redirectGuard: boolean;
+  guardDismissed: boolean;
 }
 
 export const DEFAULT_SETTINGS: AppSettings = {
   redirectGuard: true,
+  guardDismissed: false,
 };
 
 export function serializeSettings(settings: AppSettings): string {
@@ -35,5 +37,9 @@ export function parseSettings(raw: string | null | undefined): AppSettings {
       typeof parsed.redirectGuard === "boolean"
         ? parsed.redirectGuard
         : DEFAULT_SETTINGS.redirectGuard,
+    guardDismissed:
+      typeof parsed.guardDismissed === "boolean"
+        ? parsed.guardDismissed
+        : DEFAULT_SETTINGS.guardDismissed,
   };
 }

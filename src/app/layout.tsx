@@ -72,6 +72,7 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
               <SportsMenu sports={sports} />
 
               <NavLink href="/dashboard">Dashboard</NavLink>
+              <NavLink href="/help">Help</NavLink>
             </nav>
 
             <div className="ml-auto flex flex-wrap items-center gap-x-4 gap-y-2">
@@ -92,7 +93,10 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
 
         <footer className="border-t border-black/10 px-4 py-6 text-center text-xs text-zinc-500 dark:border-white/10">
           Data from the public Streamed API. TVApp only links to third-party
-          streams.
+          streams.{" "}
+          <Link href="/help" className="underline hover:text-zinc-900 dark:hover:text-zinc-100">
+            How to watch
+          </Link>
         </footer>
       </body>
     </html>

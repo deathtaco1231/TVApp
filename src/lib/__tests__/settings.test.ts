@@ -23,18 +23,29 @@ describe("parseSettings", () => {
     expect(parsed.redirectGuard).toBe(true);
   });
 
-  it("reads a persisted boolean", () => {
+  it("reads persisted booleans", () => {
     const parsed = parseSettings(
-      JSON.stringify({ version: SETTINGS_VERSION, redirectGuard: false }),
+      JSON.stringify({
+        version: SETTINGS_VERSION,
+        redirectGuard: false,
+        guardDismissed: true,
+      }),
     );
 
     expect(parsed.redirectGuard).toBe(false);
+    expect(parsed.guardDismissed).toBe(true);
+  });
+
+  it("defaults the guard prompt to not dismissed", () => {
+    const parsed = parseSettings(JSON.stringify({ version: SETTINGS_VERSION }));
+
+    expect(parsed.guardDismissed).toBe(false);
   });
 });
 
 describe("serializeSettings", () => {
   it("round-trips through parseSettings", () => {
-    const settings = { redirectGuard: false };
+    const settings = { redirectGuard: false, guardDismissed: true };
 
     expect(parseSettings(serializeSettings(settings))).toEqual(settings);
   });
