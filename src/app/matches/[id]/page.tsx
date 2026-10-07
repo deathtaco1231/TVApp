@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
+import { GuardNotice } from "@/components/GuardNotice";
 import { MatchStreams } from "@/components/MatchStreams";
 import { getAllMatches, findMatchById } from "@/lib/streamed/matches";
 import { getStreamsForSources } from "@/lib/streamed/streams";
@@ -67,6 +68,7 @@ export default async function MatchPage({
       </p>
 
       <div className="mt-6">
+        <GuardNotice />
         <MatchStreams streams={streams} />
       </div>
     </div>

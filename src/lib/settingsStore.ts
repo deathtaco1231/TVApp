@@ -79,3 +79,12 @@ export function setRedirectGuard(enabled: boolean): void {
   hydrate();
   setSettings({ ...settings, redirectGuard: enabled });
 }
+
+export function useGuardDismissed(): boolean {
+  return useSettings().guardDismissed;
+}
+
+export function dismissGuard(): void {
+  hydrate();
+  setSettings({ ...settings, guardDismissed: true });
+}

@@ -117,6 +117,34 @@ src/lib/
 - A single, persistent **search bar in the app shell** — one location that never
   moves or disappears — instead of search living only on the home board.
 
+## Ads and safety
+
+Streams play in third-party **iframes**, and some embed pages open ad popups
+(sometimes gambling/adult/malware) when you press play. TVApp cannot sandbox these
+frames — the providers detect a `sandbox` attribute and refuse to play — and a
+parent page cannot block a cross-origin frame's popups. The header **Redirect
+guard** toggle adds a browser confirmation before a top-level redirect (it does
+not catch popups).
+
+The **companion extension** in [`extension/`](extension/README.md) closes that gap:
+it neutralizes `window.open` inside the `embed.st` frames, so the play-triggered
+popups no longer open, without affecting playback or other sites. Match pages show
+a dismissible prompt when it isn't detected; open **`/guard`** in the running app
+to download the extension (with a handshake so the prompt disappears once it's
+installed). Load it once via your browser's "Load unpacked" — see
+[`extension/README.md`](extension/README.md).
+
+For a no-install path on Windows, **`/help`** offers a downloadable launcher: it
+fetches Chrome for Testing plus the guard on first run and opens TVApp with the
+guard already loaded (no extension steps).
+
+Layer network-level filtering on top for defense in depth (it also covers any TV
+on the same network):
+
+- **DNS filtering** — NextDNS, AdGuard DNS, or Pi‑hole with the ads + malware +
+  adult categories enabled, set at the router.
+- **Desktop** — a content blocker such as uBlock Origin.
+
 ## Legal
 
 TVApp does not host any video. It indexes and links to third-party streams

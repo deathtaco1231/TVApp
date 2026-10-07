@@ -12,6 +12,8 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // Browser-extension sources (loaded by Chromium, not part of the Next build).
+    "extension/**",
   ]),
 ]);
 

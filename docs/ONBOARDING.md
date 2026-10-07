@@ -122,6 +122,9 @@ today only server components fetch.
 | Date helpers | `src/lib/dates.ts` | Pure kickoff guard + same-local-day checks |
 | Dashboard logic | `src/lib/dashboard.ts` | Pure tile identity, placement, (de)serialization |
 | Dashboard state | `src/lib/dashboardStore.ts` | `localStorage`-backed external store for widgets |
+| Popup guard UI | `src/components/GuardNotice.tsx`, `src/app/guard/` | Handshake listener, dismissible prompt, install page |
+| Popup guard download | `src/app/api/guard/extension/route.ts`, `extension/` | Zips the companion extension for "Load unpacked" |
+| Watch help + launcher | `src/app/help/page.tsx`, `src/lib/launcher.ts`, `src/app/api/guard/launcher/route.ts` | Viewer how-to and Windows no-install launcher |
 | Data access | `src/lib/streamed/**` | Typed `fetch` wrappers, the API seam |
 | Config | `next.config.ts`, `tsconfig.json`, `eslint.config.mjs` | Build/tooling |
 | Tests | `src/lib/**/__tests__/**` | Jest unit tests (pure, offline) |
@@ -480,6 +483,19 @@ network.
     so navigations show its skeleton. `robots.ts`/`sitemap.ts` are static
     (`sitemap.ts` lists only `/`, `/schedule`, `/dashboard` to avoid a build-time
     API dependency).
+21. **The popup guard has a handshake.** The companion extension
+    (`extension/block.js`) posts `{ type: "tvapp-popup-guard", version: 1 }` to
+    the top window; `GuardNotice` listens and validates it with `isGuardMessage`
+    (`src/lib/guard.ts`) before hiding the match-page prompt. The prompt also
+    waits a short grace period so it doesn't flash while the embed loads.
+    `/api/guard/extension` zips `extension/` (via `fflate`) for "Load unpacked",
+    and the Dockerfile copies `extension/` into the runtime image — if you drop
+    that `COPY`, the download 500s. Branded Chrome/Edge removed `--load-extension`
+    (Chrome 137+), so a "browser with the extension" fallback must ship its own
+    Chromium (Chrome for Testing). `/api/guard/launcher` generates a Windows
+    `.cmd` (origin baked in) that pulls Chrome for Testing (pinned in
+    `src/lib/launcher.ts`) plus the guard and opens the instance with the
+    extension; `/help` is the viewer-facing guide.
 
 ---
 
