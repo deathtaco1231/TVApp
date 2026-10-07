@@ -14,21 +14,74 @@ a popular-only filter plus a sort control (Popular / Soonest / Latest / Most
 sources). Each match opens a **match page** with a stream picker and an embedded
 player.
 
-## Tech stack
+## Use it (no coding)
 
-- **Next.js 16** (App Router) with **React 19** and **TypeScript**
-- **Tailwind CSS v4** for styling
-- **Jest + React Testing Library** for tests
-- **npm** for dependencies
+### Option 1 — Open the shared link (easiest)
 
-## Getting started
+If the host shares their TVApp over **Tailscale**:
+
+1. Install [Tailscale](https://tailscale.com/download) and sign in with the
+   invite you were sent.
+2. Open the link they gave you (for example
+   `https://tvapp.<your-tailnet>.ts.net`).
+
+Nothing else to install. In-app instructions live at **`/help`**.
+
+### Option 2 — Run your own copy with Docker
+
+You need [Docker Desktop](https://www.docker.com/products/docker-desktop/) (or
+Docker Engine on Linux). Then one command:
+
+```bash
+docker run -d -p 3000:3000 --restart unless-stopped ghcr.io/deathtaco1231/tvapp:latest
+```
+
+Open <http://localhost:3000>. Update it later with:
+
+```bash
+docker pull ghcr.io/deathtaco1231/tvapp:latest
+# then stop and start it again (or use the compose file below)
+```
+
+Prefer a compose file? This repo ships a pull-only one:
+
+```bash
+docker compose -f docker-compose.release.yml up -d     # start / update
+docker compose -f docker-compose.release.yml pull      # fetch a newer image
+docker compose -f docker-compose.release.yml down      # stop
+```
+
+Pin a version with `TVAPP_TAG=v0.2.0` (defaults to `latest`).
+
+Optional helper scripts wrap the compose commands and print a friendly message if
+Docker is missing or not running:
+
+- Windows: double-click `scripts\run.cmd` (or run `scripts\run.ps1`).
+- Linux / macOS: `bash scripts/run.sh`.
+
+### Share your own copy over Tailscale (host)
+
+With Docker running and Tailscale installed on the host:
+
+```bash
+docker compose -f docker-compose.release.yml up -d
+tailscale serve --bg https / http://127.0.0.1:3000
+```
+
+Tailscale prints an `https://<host>.<tailnet>.ts.net` URL — share that. Peers
+only need Tailscale installed; no domain name or port forwarding required. (This
+also makes the no-install popup-guard launcher at `/help` work, since it needs a
+reachable origin.)
+
+## Run it for development
 
 ```bash
 npm install
 npm run dev
 ```
 
-Open <http://localhost:3000>.
+Open <http://localhost:3000>. This is the development server (Turbopack, hot
+reload); it does not use the published image.
 
 ## Commands
 
@@ -41,32 +94,59 @@ Open <http://localhost:3000>.
 | `npm run typecheck` | Generate route types, then `tsc --noEmit` |
 | `npm test` | Run the Jest suite |
 | `npm run test:watch` | Jest in watch mode |
-| `docker compose up -d --build` | Build the image and serve it on port 3000 (see [Run with Docker](#run-with-docker)) |
-| `docker build -t tvapp .` | Build the container image only |
+| `docker build -t tvapp .` | Build the container image locally |
+| `docker compose up -d --build` | Build + serve locally on port 3000 |
+| `docker compose -f docker-compose.release.yml up -d` | Run the published image |
 
 CI (`.github/workflows/ci.yml`) runs lint, typecheck, tests, and build on every
 push and pull request.
 
-## Run with Docker
+## Releases & versioning
+
+`package.json` `version` is the single source of truth and is shown in the app
+footer (with an automatic **BETA** tag while the major version is `0`).
+
+To cut a release:
+
+```bash
+npm version patch   # or minor / major — bumps package.json and creates a git tag
+git push --follow-tags
+```
+
+That pushes a `vX.Y.Z` tag, which triggers
+[`.github/workflows/release.yml`](.github/workflows/release.yml): it runs the
+checks, builds the image for **linux/amd64 and linux/arm64** on native runners,
+and pushes `ghcr.io/deathtaco1231/tvapp` with the semver, `X.Y`, and `latest`
+tags (plus an immutable `sha-…` tag). Roll back by running an older version tag.
+
+**arm64 rollback:** if the native `ubuntu-24.04-arm` runner is unavailable on
+your plan, or the extra build time isn't worth it, delete the arm64 entry from
+the workflow's build matrix. The workflow keeps working with a single platform
+and nothing else changes.
+
+**First release — make the package pullable anonymously:** a new GHCR package is
+**private** by default. After the first tag, open the package on GitHub
+(`https://github.com/users/deathtaco1231/packages/container/tvapp/settings`) and
+set its visibility to **Public**, or everyone's `docker pull` will fail with
+`unauthorized`. (Keep it private only if you intend every user to
+`docker login ghcr.io` with a personal access token.)
+
+> The image is built at release time and needs outbound network (it prerenders
+> live data and downloads fonts).
+
+## Run with Docker (local build)
 
 The app ships as a self-contained container, so you do not need Node.js
-installed to run it. With [Docker](https://docs.docker.com/get-docker/) (or
-Docker Desktop) installed:
+installed to run it. With Docker installed:
 
 ```bash
 docker compose up -d --build
 ```
 
-Then open <http://localhost:3000>. To stop it:
-
-```bash
-docker compose down
-```
-
-To let other devices on your network reach it, use the host machine's IP, e.g.
-`http://192.168.1.20:3000` (port `3000` is published by `docker-compose.yml`).
-The image defines a `HEALTHCHECK`, so `docker compose ps` reports `healthy` once
-it is serving.
+Then open <http://localhost:3000>. To stop it: `docker compose down`. To let
+other devices on your network reach it, use the host machine's IP, e.g.
+`http://192.168.1.20:3000`. The image defines a `HEALTHCHECK`, so
+`docker compose ps` reports `healthy` once it is serving.
 
 Prefer plain Docker without Compose:
 
@@ -77,8 +157,7 @@ docker run --rm -p 3000:3000 tvapp
 
 The image is built with Next.js [standalone output](https://nextjs.org/docs/app/api-reference/config/next-config-js/output),
 so the production build runs via `node server.js` inside the container rather
-than `next start`. The base image is digest-pinned for reproducible builds. The
-build needs internet access (it prerenders live data and downloads fonts).
+than `next start`. The base image is digest-pinned for reproducible builds.
 Normal local development is unaffected — `npm run dev` and `npm run build`
 behave exactly as before; `DOCKER_BUILD=1` (set only by the Docker build) is what
 switches on standalone mode.
@@ -100,6 +179,7 @@ src/app/                     routes (App Router)
 src/components/              presentational + interactive pieces
 src/lib/
   live.ts                    grouping/search/sort for the home board (pure)
+  version.ts                 footer version label (pure)
   streamed/                  typed API client (the only place that fetches)
 ```
 
@@ -116,6 +196,7 @@ src/lib/
 
 - A single, persistent **search bar in the app shell** — one location that never
   moves or disappears — instead of search living only on the home board.
+- A public hosted instance behind a simple login (currently Tailscale-only).
 
 ## Ads and safety
 
@@ -136,7 +217,8 @@ installed). Load it once via your browser's "Load unpacked" — see
 
 For a no-install path on Windows, **`/help`** offers a downloadable launcher: it
 fetches Chrome for Testing plus the guard on first run and opens TVApp with the
-guard already loaded (no extension steps).
+guard already loaded (no extension steps). This needs a reachable TVApp origin —
+the Tailscale HTTPS host works.
 
 Layer network-level filtering on top for defense in depth (it also covers any TV
 on the same network):

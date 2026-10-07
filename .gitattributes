@@ -1,0 +1,3 @@
+# Keep shell scripts runnable regardless of the host OS / core.autocrlf setting.
+scripts/*.sh text eol=lf
+scripts/*.cmd text eol=crlf

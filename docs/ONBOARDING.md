@@ -42,8 +42,11 @@ TVApp/
   next.config.ts          Next config (image allow-list; headers + report-only CSP; standalone when DOCKER_BUILD=1)
   Dockerfile              multi-stage image build (node:22-alpine digest; standalone runtime; HEALTHCHECK)
   .dockerignore           build-context excludes
-  docker-compose.yml      one-command build + serve on :3000
+  docker-compose.yml      one-command build + serve on :3000 (local development)
+  docker-compose.release.yml  pull-only compose for the published GHCR image
+  scripts/                run.sh / run.ps1 / run.cmd helpers for the release image
   .github/workflows/ci.yml  CI: lint + typecheck + test + build
+  .github/workflows/release.yml  tag-driven multi-arch (amd64+arm64) image push to GHCR
   tsconfig.json           TypeScript + "@/*" -> "src/*" path alias
   eslint.config.mjs       ESLint (next/core-web-vitals + next/typescript)
   jest.config.mjs         Jest via next/jest
@@ -78,6 +81,7 @@ TVApp/
     lib/
       live.ts             pure grouping/search/sort helpers for the home page
       dates.ts            pure kickoff / same-local-day helpers
+      version.ts          pure footer version label (BETA below 1.0.0)
       dashboard.ts        pure widget identity/layout/persistence helpers
       dashboardStore.ts   localStorage-backed external store (useSyncExternalStore)
       streamed/           the ONLY code that talks to the API
@@ -394,6 +398,9 @@ network.
 | Change SEO, robots, or sitemap | `src/app/layout.tsx`, `src/app/robots.ts`, `src/app/sitemap.ts`, per-route `generateMetadata` | Yes |
 | Change CI steps | `.github/workflows/ci.yml` | n/a |
 | Change the container image / port / runtime | `Dockerfile`, `docker-compose.yml`, `next.config.ts` | Yes (rebuild the image) |
+| Change the release pipeline / platforms / tags | `.github/workflows/release.yml` | n/a (re-tag) |
+| Change how users get the published image | `docker-compose.release.yml`, `scripts/` | No |
+| Bump the app version / footer label | `package.json` (`version`), `src/lib/version.ts` | Yes (rebuild) |
 | Global colors / fonts / theme | `src/app/globals.css`, `src/app/layout.tsx` | Dev hot-reloads |
 
 ## 10. Gotchas
@@ -496,6 +503,14 @@ network.
     `.cmd` (origin baked in) that pulls Chrome for Testing (pinned in
     `src/lib/launcher.ts`) plus the guard and opens the instance with the
     extension; `/help` is the viewer-facing guide.
+22. **Releases are tag-driven and version is single-sourced.** `package.json`
+    `version` feeds `NEXT_PUBLIC_APP_VERSION` (`next.config.ts` `env`) and the
+    footer label (`src/lib/version.ts`; BETA while major is `0`). Pushing a
+    `vX.Y.Z` tag runs `.github/workflows/release.yml`, which builds
+    `linux/amd64` + `linux/arm64` on native runners, assembles the manifest, and
+    pushes `ghcr.io/deathtaco1231/tvapp`. `docker-compose.release.yml` / the
+    `scripts/run.*` helpers pull that image. To drop arm64, remove its matrix
+    entry; no app code changes.
 
 ---
 

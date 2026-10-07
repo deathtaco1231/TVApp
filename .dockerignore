@@ -10,6 +10,9 @@ README.md
 Dockerfile
 .dockerignore
 docker-compose.yml
+docker-compose.release.yml
+scripts
+.github
 
 # personal / editor files (see .gitignore)
 AGENTS.md

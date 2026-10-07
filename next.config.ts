@@ -1,8 +1,14 @@
 import type { NextConfig } from "next";
+import pkg from "./package.json";
 
 const nextConfig: NextConfig = {
   output: process.env.DOCKER_BUILD ? "standalone" : undefined,
   poweredByHeader: false,
+  // package.json `version` is the single source of truth for releases; expose it
+  // to the app so the footer can show which build is running.
+  env: {
+    NEXT_PUBLIC_APP_VERSION: pkg.version,
+  },
   images: {
     remotePatterns: [
       {

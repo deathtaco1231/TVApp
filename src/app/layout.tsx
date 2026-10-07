@@ -6,6 +6,7 @@ import { NavLink } from "@/components/NavLink";
 import { RedirectGuardToggle } from "@/components/RedirectGuardToggle";
 import { getSports } from "@/lib/streamed/sports";
 import type { Sport } from "@/lib/streamed/types";
+import { formatVersionLabel } from "@/lib/version";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -47,6 +48,10 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
   } catch {
     sports = [];
   }
+
+  const versionLabel = formatVersionLabel(
+    process.env.NEXT_PUBLIC_APP_VERSION ?? "",
+  );
 
   return (
     <html
@@ -92,11 +97,18 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
         <main className="flex flex-1 flex-col">{children}</main>
 
         <footer className="border-t border-black/10 px-4 py-6 text-center text-xs text-zinc-500 dark:border-white/10">
-          Data from the public Streamed API. TVApp only links to third-party
-          streams.{" "}
-          <Link href="/help" className="underline hover:text-zinc-900 dark:hover:text-zinc-100">
-            How to watch
-          </Link>
+          <p>
+            Data from the public Streamed API. TVApp only links to third-party
+            streams.{" "}
+            <Link href="/help" className="underline hover:text-zinc-900 dark:hover:text-zinc-100">
+              How to watch
+            </Link>
+          </p>
+          {versionLabel ? (
+            <p className="mt-1 text-zinc-400 dark:text-zinc-600">
+              {versionLabel}
+            </p>
+          ) : null}
         </footer>
       </body>
     </html>

@@ -1,0 +1,18 @@
+# Pull-only compose for running a released TVApp image (no build needed).
+#
+#   docker compose -f docker-compose.release.yml up -d      # start / update
+#   docker compose -f docker-compose.release.yml pull       # fetch newer image
+#   docker compose -f docker-compose.release.yml down       # stop
+#
+# Pin a specific version with TVAPP_TAG (defaults to latest), e.g.
+#   TVAPP_TAG=v0.2.0 docker compose -f docker-compose.release.yml up -d
+#
+# To let other devices on your network (or Tailscale tailnet) reach it, use this
+# machine's IP / MagicDNS name instead of localhost — port 3000 is published.
+
+services:
+  tvapp:
+    image: ghcr.io/deathtaco1231/tvapp:${TVAPP_TAG:-latest}
+    ports:
+      - "3000:3000"
+    restart: unless-stopped

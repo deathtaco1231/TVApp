@@ -60,13 +60,38 @@ export default function HelpPage() {
 
       <section className="mt-8">
         <h2 className="text-sm font-semibold tracking-tight">
-          On a private network
+          On a private network (Tailscale)
         </h2>
         <p className="mt-2 text-sm text-zinc-600 dark:text-zinc-300">
           If the host shares TVApp over Tailscale, install Tailscale, sign in,
           and open the address they gave you (for example{" "}
-          <code className="text-xs">http://tvapp:3000</code>). Only devices on
-          that private network can reach it.
+          <code className="text-xs">
+            https://tvapp.&lt;your-tailnet&gt;.ts.net
+          </code>
+          ). Only devices on that private network can reach it — no public
+          address and no install beyond Tailscale.
+        </p>
+      </section>
+
+      <section className="mt-8">
+        <h2 className="text-sm font-semibold tracking-tight">
+          Run your own copy
+        </h2>
+        <p className="mt-2 text-sm text-zinc-600 dark:text-zinc-300">
+          Have Docker installed? Start TVApp with one command, then open{" "}
+          <code className="text-xs">http://localhost:3000</code>:
+        </p>
+        <pre className="mt-2 overflow-x-auto rounded bg-zinc-100 p-3 text-xs dark:bg-zinc-900">
+          docker run -d -p 3000:3000 --restart unless-stopped
+          ghcr.io/deathtaco1231/tvapp:latest
+        </pre>
+        <p className="mt-3 text-sm text-zinc-600 dark:text-zinc-300">
+          To update later, run{" "}
+          <code className="text-xs">
+            docker pull ghcr.io/deathtaco1231/tvapp:latest
+          </code>{" "}
+          and start it again. Want other devices on your network to reach it? Use
+          this machine&apos;s IP instead of <code className="text-xs">localhost</code>.
         </p>
       </section>
     </div>
