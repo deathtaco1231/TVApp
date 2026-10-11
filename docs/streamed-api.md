@@ -117,6 +117,8 @@ raw `embedUrl` as a link, which is handy for casting to a TV.
    the iframe: providers detect the `sandbox` attribute and refuse to play (a red
    "Remove sandbox attributes on the iframe tag" screen), and a parent page cannot
    otherwise contain a cross-origin frame's popups or top-level navigation. The
-   only in-app mitigation is the optional redirect guard (see `ONBOARDING.md`);
-   real protection against malicious ad destinations is network-level
-   (DNS/ad-block filtering).
+   in-app mitigation is the companion extension (`extension/`), which blocks
+   `window.open` and `target="_blank"` in the embeds; a persistent, minimize-only
+   notice on match pages prompts users to install it. Real protection against
+   malicious ad destinations for users without the extension is network-level
+   (DNS/ad-block filtering). See `ONBOARDING.md` gotcha 7.

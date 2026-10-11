@@ -15,37 +15,29 @@ describe("parseSettings", () => {
     );
   });
 
-  it("defaults the guard to on when the field is absent or mistyped", () => {
-    const parsed = parseSettings(
-      JSON.stringify({ version: SETTINGS_VERSION, redirectGuard: "yes" }),
-    );
-
-    expect(parsed.redirectGuard).toBe(true);
+  it("defaults the guard notice to expanded when the field is absent or mistyped", () => {
+    expect(
+      parseSettings(JSON.stringify({ version: SETTINGS_VERSION })).guardMinimized,
+    ).toBe(false);
+    expect(
+      parseSettings(
+        JSON.stringify({ version: SETTINGS_VERSION, guardMinimized: "yes" }),
+      ).guardMinimized,
+    ).toBe(false);
   });
 
-  it("reads persisted booleans", () => {
+  it("reads a persisted boolean", () => {
     const parsed = parseSettings(
-      JSON.stringify({
-        version: SETTINGS_VERSION,
-        redirectGuard: false,
-        guardDismissed: true,
-      }),
+      JSON.stringify({ version: SETTINGS_VERSION, guardMinimized: true }),
     );
 
-    expect(parsed.redirectGuard).toBe(false);
-    expect(parsed.guardDismissed).toBe(true);
-  });
-
-  it("defaults the guard prompt to not dismissed", () => {
-    const parsed = parseSettings(JSON.stringify({ version: SETTINGS_VERSION }));
-
-    expect(parsed.guardDismissed).toBe(false);
+    expect(parsed.guardMinimized).toBe(true);
   });
 });
 
 describe("serializeSettings", () => {
   it("round-trips through parseSettings", () => {
-    const settings = { redirectGuard: false, guardDismissed: true };
+    const settings = { guardMinimized: true };
 
     expect(parseSettings(serializeSettings(settings))).toEqual(settings);
   });

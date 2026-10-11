@@ -37,25 +37,30 @@ export default function HelpPage() {
         <p className="mt-2 text-sm text-zinc-600 dark:text-zinc-300">
           Stream embeds sometimes open ad popups (gambling, adult, or scam pages)
           when you press play. They come from the stream site, not TVApp, and no
-          web page can block them by itself.
-        </p>
-        <p className="mt-3 text-sm text-zinc-600 dark:text-zinc-300">
-          The easiest fix on Windows is the{" "}
-          <a href="/api/guard/launcher" download className="underline">
-            no-install launcher
-          </a>
-          : download it, double-click it, and it opens a browser that already has
-          the popup guard. The first run downloads the browser once and may show
-          a Windows &ldquo;unrecognized app&rdquo; warning — choose{" "}
-          <strong>More info → Run anyway</strong>.
-        </p>
-        <p className="mt-3 text-sm text-zinc-600 dark:text-zinc-300">
-          Prefer to keep your own browser? See the{" "}
+          web page can block them by itself. There are two ways to stop them —
+          full steps are on the{" "}
           <Link href="/guard" className="underline">
-            popup guard
+            Popup guard
           </Link>{" "}
-          page to add it to Chrome, Edge, or Brave.
+          page.
         </p>
+        <ul className="mt-3 flex list-disc flex-col gap-2 pl-5 text-sm text-zinc-600 dark:text-zinc-300">
+          <li>
+            <strong>Install the guard (recommended).</strong> A small extension
+            for Chrome, Edge, or Brave that stays in your normal browser — no big
+            download.
+          </li>
+          <li>
+            <strong>Use the TVApp launcher (Windows, no install).</strong>{" "}
+            <a href="/api/guard/launcher" download className="underline">
+              Download it
+            </a>
+            , double-click it, and TVApp opens in a browser that already has the
+            guard. The first run downloads the browser once and may show a
+            Windows &ldquo;unrecognized app&rdquo; warning — choose{" "}
+            <strong>More info → Run anyway</strong>.
+          </li>
+        </ul>
       </section>
 
       <section className="mt-8">

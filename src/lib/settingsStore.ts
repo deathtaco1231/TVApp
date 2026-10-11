@@ -71,20 +71,11 @@ export function useSettings(): AppSettings {
   return useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot);
 }
 
-export function useRedirectGuard(): boolean {
-  return useSettings().redirectGuard;
+export function useGuardMinimized(): boolean {
+  return useSettings().guardMinimized;
 }
 
-export function setRedirectGuard(enabled: boolean): void {
+export function setGuardMinimized(minimized: boolean): void {
   hydrate();
-  setSettings({ ...settings, redirectGuard: enabled });
-}
-
-export function useGuardDismissed(): boolean {
-  return useSettings().guardDismissed;
-}
-
-export function dismissGuard(): void {
-  hydrate();
-  setSettings({ ...settings, guardDismissed: true });
+  setSettings({ ...settings, guardMinimized: minimized });
 }

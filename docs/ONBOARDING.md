@@ -428,12 +428,17 @@ network.
    [`streamed-api.md`](./streamed-api.md) "Gotchas". Prefer badges.
 7. **Embeds are intentionally not sandboxed.** Providers detect the `sandbox`
    attribute and refuse to play, and a parent page cannot contain a cross-origin
-   frame's popups or top-level navigation anyway. Instead, an optional redirect
-   guard (`src/components/RedirectGuard.tsx`, toggled in the header) attaches
-   `beforeunload` so a *top-level* ad redirect shows a browser confirmation. It
-   cannot catch popups or downloads. Real protection is network-level
-   (DNS/ad-block filtering). Some `embedUrl` hosts also refuse to be framed; the
-   player shows an "open raw link" fallback either way.
+   frame's popups or top-level navigation anyway. The in-app mitigation is the
+   companion extension (`extension/`), which neutralizes `window.open` and
+   `target="_blank"` in the `embed.st` frames; match pages show a persistent,
+   minimize-only notice (`GuardNotice.tsx`) until the extension handshake is
+   seen. A `beforeunload` redirect guard was tried and removed — it can't see
+   popups (the actual vector) and only nags on refresh/close. We also tried a
+   `declarativeNetRequest` `main_frame` block; it stops the redirect but leaves
+   the tab on Chrome's error page, so it's deferred (see the README "Future
+   ideas" for the `/blocked` variant). Real protection for non-extension users is
+   network-level (DNS/ad-block filtering). Some `embedUrl` hosts also refuse to
+   be framed; the player shows an "open raw link" fallback either way.
 8. **Rebuild vs hot-reload.** Component and page edits hot-reload in `npm run dev`;
    `next.config.ts`, `package.json`, and `.env` changes need a dev-server restart.
 9. **Home order is intentionally stable.** Groups are alphabetical by sport name
